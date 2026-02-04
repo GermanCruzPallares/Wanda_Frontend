@@ -102,8 +102,13 @@
 
     .page-contact {
 
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+
         main {
             padding-top: 3em;
+            flex: 1;
         }
     }
 
