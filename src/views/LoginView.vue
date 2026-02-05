@@ -4,7 +4,7 @@ import LoginHeader from '../components/LoginHeader.vue'
 </script>
 
 <template>
-  <main>
+  <main class="login">
     <LoginHeader />
     <LoginComponent />
   </main>

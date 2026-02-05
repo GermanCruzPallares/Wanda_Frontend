@@ -78,4 +78,18 @@ function changeStatus() {
       <button type="submit" class="btn-primary">Enviar</button>
     </form>
   </section>
+
+  <section class="bottom">
+      <p class="bottom__question">¿No tienes una cuenta?</p>
+      <RouterLink to="/register"><a href="./signUp.html" class="bottom__link">Regístrate</a></RouterLink>
+  </section>
+
 </template>
+
+<style>
+
+a{
+  text-decoration: none;
+}
+
+</style>

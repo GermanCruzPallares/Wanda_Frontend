@@ -4,7 +4,7 @@
 
 .login {
     background-image: linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.4)),
-        url(../images/fondo.png);
+        url(../../images/fondo.png);
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -12,7 +12,7 @@
     flex-direction: column;
     position: relative;
     min-height: 100vh;
-
+    
 }
 
 .main {

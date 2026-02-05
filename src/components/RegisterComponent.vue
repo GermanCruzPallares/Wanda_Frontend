@@ -114,4 +114,9 @@ function changeStatus() {
       <button type="submit" class="btn-primary">Enviar</button>
     </form>
   </section>
+
+   <section class="bottom">
+      <p class="bottom__question">¿Ya tienes una cuenta?</p>
+      <RouterLink to="/login"><a href="./login.html" class="bottom__link">Inicia Sesión</a></RouterLink>
+    </section>
 </template>
