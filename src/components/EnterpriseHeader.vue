@@ -10,18 +10,19 @@ function changeStatus() {
   <header class="main-header">
     <div class="main-header__container">
       <div class="main-header__logo">
+        <RouterLink to="/">
         <a href="./index.html">
           <img
             class="main-header__logo-reduced"
-            src="../images/OscuroReducido.png"
+            src="../images/LogoReducido.png"
             alt="Wanda Logo"
           />
           <img
             class="main-header__logo-principal"
-            src="../images/OscuroPrincipal.png"
+            src="../images/LogoPrincipal.png"
             alt="Wanda Logo"
           />
-        </a>
+        </a></RouterLink>
       </div>
 
       <nav class="main-header__nav">

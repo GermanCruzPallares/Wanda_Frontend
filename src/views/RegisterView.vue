@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import RegisterComponent from '../components/RegisterComponent.vue'
-import LoginHeader from '../components/LoginHeader.vue'
+import EnterpriseHeader from '../components/EnterpriseHeader.vue';
 </script>
 
 <template>
   <main class="signUp">
-    <LoginHeader />
+    <EnterpriseHeader />
     <RegisterComponent />
   </main>
 </template>

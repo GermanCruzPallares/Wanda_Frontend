@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import LoginComponent from '@/components/LoginComponent.vue'
-import LoginHeader from '../components/LoginHeader.vue'
+import EnterpriseHeader from '../components/EnterpriseHeader.vue';
 </script>
 
 <template>
   <main class="login">
-    <LoginHeader />
+    <EnterpriseHeader />
     <LoginComponent />
   </main>
 </template>

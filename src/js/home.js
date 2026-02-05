@@ -1,22 +1,3 @@
-//Funcion para abrir y cerrar seccion preguntas frecuentes
-
-const questions = document.querySelectorAll('.faq__question')
-
-questions.forEach((question) => {
-  question.addEventListener('click', function () {
-    const item = this.closest('.faq__item')
-
-    const estabaAbierto = item.classList.contains('faq__item--active')
-
-    document.querySelectorAll('.faq__item').forEach((i) => {
-      i.classList.remove('faq__item--active')
-    })
-
-    if (!estabaAbierto) {
-      item.classList.add('faq__item--active')
-    }
-  })
-})
 
 // Espera a que todo el contenido del DOM esté cargado
 document.addEventListener('DOMContentLoaded', () => {
