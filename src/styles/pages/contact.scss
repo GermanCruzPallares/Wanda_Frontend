@@ -97,28 +97,29 @@
     }
 }
 
-
-@media (min-width: $desktop-breakpoint) {
-
     .page-contact {
-
         min-height: 100vh;
         display: flex;
         flex-direction: column;
+        
 
         main {
             padding-top: 3em;
             flex: 1;
         }
     }
+    // .page-contact {
+    //     .footerDesktop {
+    //         flex-direction: row;
+    //         justify-content: center;
+    //         gap: 4rem;
+    //     }
+    // }
 
-    .page-contact {
-        .footerDesktop {
-            flex-direction: row;
-            justify-content: center;
-            gap: 4rem;
-        }
-    }
+
+@media (min-width: $desktop-breakpoint) {
+
+
 
     .contact-page {
         align-items: center;

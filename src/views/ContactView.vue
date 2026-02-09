@@ -18,4 +18,5 @@ import FooterComponent from '@/components/FooterComponent.vue';
         <FooterComponent></FooterComponent>
         </footer>
     </body>
+    
 </template>

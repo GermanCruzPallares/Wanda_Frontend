@@ -43,6 +43,31 @@
         justify-content: flex-end;
     }
 
+    &--dark {
+        .nav-toggle .hamburger-line {
+            background-color: $color-text--dk;
+        }
+        .nav-list li a {
+            color: $color-text--dk;
+
+            &:hover {
+                color: $color-text-gray;
+            }
+
+            // Si el botón de registro debe mantener su estilo, asegúrate de que 
+            // .btn-highlight tenga más especificidad o no se vea afectado aquí
+        }
+
+        .nav-list li a.btn-highlight {
+        @include highlightedBt(); // Mantiene el fondo azul/oscuro y texto blanco
+        
+        &:hover {
+            // Aquí puedes definir un hover específico si lo deseas
+            opacity: 0.9;
+        }
+    }
+    }
+
 }
 
 .nav-list {

@@ -1,17 +1,23 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { useRoute } from 'vue-router'
 const NavBtnStatus = ref(false)
+const route = useRoute();
 function changeStatus() {
   NavBtnStatus.value = !NavBtnStatus.value
 }
+const isDarkHeader = computed(() => {
+  const darkPages = ['contact', 'otra-pagina-futura'] 
+  return darkPages.includes(route.name as string)
+})
 </script>
 
 <template>
-  <header class="main-header">
+  <header class="main-header" :class="{ 'main-header--dark': isDarkHeader }" >
     <div class="main-header__container">
       <div class="main-header__logo">
         <RouterLink to="/">
-        <a href="./index.html">
+        <template v-if="!isDarkHeader">
           <img
             class="main-header__logo-reduced"
             src="../images/LogoReducido.png"
@@ -22,7 +28,12 @@ function changeStatus() {
             src="../images/LogoPrincipal.png"
             alt="Wanda Logo"
           />
-        </a></RouterLink>
+          </template>
+          <template v-else>
+            <img class="main-header__logo-reduced" src="../images/OscuroReducido.png" alt="Wanda Logo" />
+            <img class="main-header__logo-principal" src="../images/OscuroPrincipal.png" alt="Wanda Logo" />
+          </template>
+        </RouterLink>
       </div>
 
       <nav class="main-header__nav">
@@ -38,11 +49,11 @@ function changeStatus() {
         </button>
 
         <ul class="nav-list" :class="{ active: NavBtnStatus }">
-          <li><RouterLink to="/services"><a href="./services.html">Servicios</a></RouterLink></li>
+          <li><RouterLink to="/services">Servicios</RouterLink></li>
           <li><a href="#Sobre Nosotros">Sobre Nosotros</a></li>
-          <li><RouterLink to="/contact"><a href="./contact.html">Contacto</a></RouterLink></li>
-          <li class="push-right"><RouterLink to="/login"><a href="#InicioSesión">Inicio Sesión</a></RouterLink></li>
-          <li><RouterLink to="/register"><a href="#Registro" class="btn-highlight">Registro</a></RouterLink></li>
+          <li><RouterLink to="/contact">Contacto</RouterLink></li>
+          <li class="push-right"><RouterLink to="/login">Inicio Sesión</RouterLink></li>
+          <li><RouterLink to="/register" class="btn-highlight">Registro</RouterLink></li>
         </ul>
       </nav>
     </div>
