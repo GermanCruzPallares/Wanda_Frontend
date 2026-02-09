@@ -97,6 +97,11 @@
     }
 }
 
+
+
+
+@media (min-width: $desktop-breakpoint) {
+
     .page-contact {
         min-height: 100vh;
         display: flex;
@@ -108,18 +113,13 @@
             flex: 1;
         }
     }
-    // .page-contact {
-    //     .footerDesktop {
-    //         flex-direction: row;
-    //         justify-content: center;
-    //         gap: 4rem;
-    //     }
-    // }
-
-
-@media (min-width: $desktop-breakpoint) {
-
-
+    .page-contact {
+        .footerDesktop {
+            flex-direction: row;
+            justify-content: center;
+            gap: 4rem;
+        }
+    }
 
     .contact-page {
         align-items: center;
