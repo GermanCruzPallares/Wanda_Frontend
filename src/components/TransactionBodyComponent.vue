@@ -1,5 +1,10 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import IconCutlery from './icons/IconCutlery.vue'
+import IconCar from './icons/IconCar.vue'
+import IconShoppingCart from './icons/IconShoppingCart.vue'
+import IconBullhorn from './icons/IconBullhorn.vue'
+import IconMobile from './icons/IconMobile.vue'
 
 const type = ref('expense')
 const amount = ref('0')
@@ -10,7 +15,7 @@ const isRecurring = ref(false)
 const frequency = ref('monthly')
 const duration = ref('defined')
 const endDate = ref()
-const showKeypad = ref(true)
+const showKeypad = ref(false)
 
 const keypadRef = ref(null)
 const amountTriggerRef = ref(null)
@@ -44,11 +49,11 @@ onUnmounted(() => {
 })
 
 const categories = [
-  { id: 1, name: 'Comida', icon: 'cutlery' },
-  { id: 2, name: 'Transporte', icon: 'car' },
-  { id: 3, name: 'Compras', icon: 'shopping-cart' },
-  { id: 4, name: 'Facturas', icon: 'bullhorn' },
-  { id: 5, name: 'Subs', icon: 'mobile' },
+  { id: 1, name: 'Comida', icon: IconCutlery },
+  { id: 2, name: 'Transporte', icon: IconCar },
+  { id: 3, name: 'Compras', icon: IconShoppingCart },
+  { id: 4, name: 'Facturas', icon: IconBullhorn },
+  { id: 5, name: 'Subs', icon: IconMobile },
 ]
 
 const formattedAmount = computed(() => {
@@ -120,7 +125,7 @@ const save = () => {
           @click="selectedCategory = cat.id"
         >
           <div class="icon-circle">
-            <i :class="`fa fa-${cat.icon}`"></i>
+            <component :is="cat.icon" class="category-icon" />
           </div>
           <span class="cat-name">{{ cat.name }}</span>
         </button>
@@ -128,7 +133,7 @@ const save = () => {
 
       <div class="concept-section">
         <button class="concept-toggle" @click="toggleConcept">
-          <span v-if="!conceptExpanded">∨ Añadir concepto (opcional)</span>
+          <span v-if="!conceptExpanded">v Añadir concepto (opcional)</span>
           <span v-else>∧ Ocultar concepto</span>
         </button>
         <div v-if="conceptExpanded" class="concept-input-wrapper">

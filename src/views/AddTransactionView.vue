@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import TBodyComponent from '@/components/TBodyComponent.vue';
+import TransactionBodyComponent from '@/components/TransactionBodyComponent.vue';
 import TopNav from '@/components/TopNav.vue';
 
 </script>
@@ -9,6 +9,6 @@ import TopNav from '@/components/TopNav.vue';
 
 <TopNav></TopNav>
 
-<TBodyComponent></TBodyComponent>
+<TransactionBodyComponent></TransactionBodyComponent>
 
 </template>
