@@ -23,12 +23,7 @@
               </div>
               <h3 class="objective-card__name">{{ objective.name }}</h3>
             </div>
-            <button class="objective-card__info-btn" @click="handleInfo(objective.id)">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-            </button>
+
           </div>
 
           <div class="objective-card__progress">
@@ -86,9 +81,7 @@ const handleAddObjective = () => {
   emit('addObjective');
 };
 
-const handleInfo = (id: string) => {
-  emit('showInfo', id);
-};
+
 </script>
 
 <style scoped lang="scss">
@@ -143,22 +136,7 @@ const handleInfo = (id: string) => {
     margin: 0;
   }
 
-  &__info-btn {
-    background: none;
-    border: none;
-    color: $color-text-gray;
-    cursor: pointer;
-    padding: 0.25rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: color $transition-speed $transition-ease;
-    margin-top: -1.5rem; 
-
-    &:hover {
-      color: $color-text;
-    }
-  }
+  
 
   &__progress {
     display: flex;
@@ -207,4 +185,5 @@ const handleInfo = (id: string) => {
     font-weight: 500;
   }
 }
+
 </style>

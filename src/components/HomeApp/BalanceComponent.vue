@@ -5,11 +5,13 @@
     <div class="weekly-balance">
       <div class="weekly-balance__header">
         <h4 class="weekly-balance__title">Balance Semanal</h4>
-        <button class="weekly-balance__info-btn">
-          <span class="info-icon">ⓘ</span>
+        <button class="weekly-balance__info-btn" @click="openInfoModal">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
         </button>
       </div>
-      
       <div 
         class="weekly-balance__message"
         :class="messageClass"
@@ -101,12 +103,19 @@
         </div>
       </div>
     </div>
+      <InfoModal
+          :is-open="isInfoModalOpen"
+          title="¿ Como funciona ?"
+          content='Comparamos tu gasto actual con el tiempo transcurrido. Si la barra de gasto está detrás del indicador "Hoy", ¡vas genial! Si está adelante, es momento de ajustar un poco.'
+          @close="closeInfoModal"
+      />    
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import SectionTitle from '@/components/SectionTitle.vue';
+import InfoModal from './InfoModal.vue';
 
 interface Props {
   weeklyBudget?: number;        // Presupuesto semanal
@@ -119,6 +128,17 @@ const props = withDefaults(defineProps<Props>(), {
   currentWeekExpenses: 80,
   todayDayOfWeek: 4 // Jueves por defecto
 });
+
+// Estado del modal de información
+const isInfoModalOpen = ref(false);
+
+const openInfoModal = () => {
+  isInfoModalOpen.value = true;
+};
+
+const closeInfoModal = () => {
+  isInfoModalOpen.value = false;
+};
 
 const weekDays = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
@@ -209,7 +229,7 @@ const isToday = (day: string): boolean => {
 };
 </script>
 
-<style lang="scss">
+<style scoped lang="scss">
 @import '@/styles/base/variables.scss';
 
 .weekly-balance {
@@ -235,14 +255,18 @@ const isToday = (day: string): boolean => {
   &__info-btn {
     background: none;
     border: none;
+    color: $color-text-gray;
     cursor: pointer;
-    padding: 4px;
-    
-    .info-icon {
-      color: $color-text-gray;
-      font-size: 18px;
-    }
-  }
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color $transition-speed $transition-ease;
+    margin-top: -0.6rem; 
+
+    &:hover {
+      color: $color-text;
+    }}
   
 &__message {
   display: flex;

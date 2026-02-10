@@ -175,7 +175,7 @@ const handleEdit = () => {
     }
     
     &--income {
-      color: #0DF744;
+      color: #4a8659;
     }
   }
 }
