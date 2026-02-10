@@ -16,13 +16,14 @@ const currentDay = getCurrentDayOfWeek();
 
 <template>
 <TopNav></TopNav>
-<main class="home-content"></main>
+<main class="home-content">
 <CardComponent></CardComponent>
 <BalanceComponent
 :weekly-budget="200"
 :current-week-expenses="10"
 :today-day-of-week= "currentDay"
 ></BalanceComponent>
+</main>
 <BottomNav></BottomNav>
 
 </template>
@@ -31,5 +32,6 @@ const currentDay = getCurrentDayOfWeek();
 .home-content {
 
   padding-top: 100px; 
+  padding-bottom: 80px; 
 }
 </style>

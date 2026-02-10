@@ -9,7 +9,11 @@
         @click="handleNavClick(item.id)"
         :aria-label="item.label"
       >
-        <component :is="item.icon" :is-active="activeItem === item.id" />
+        <component 
+          :is="item.icon" 
+          :is-active="activeItem === item.id"
+          :focusable="false"
+        />
       </button>
     </div>
   </nav>
@@ -19,7 +23,7 @@
 import { ref, type Component } from 'vue';
 import IconHome from './icons/HomeIcon.vue';
 import IconPlus from './icons/PlusIcon.vue';
-import IconSquare from './icons/BookIcon.vue';
+import IconSquare from './icons/CalculatorIcon.vue';
 import IconUser from './icons/UserIcon.vue';
 
 interface NavItem {
@@ -42,9 +46,9 @@ const emit = defineEmits<{
 }>();
 
 const handleNavClick = (id: string): void => {
+  // Asegurarse de que solo un item esté activo
   activeItem.value = id;
   emit('navigate', id);
-  
 };
 </script>
 
@@ -76,18 +80,14 @@ const handleNavClick = (id: string): void => {
     align-items: center;
     justify-content: center;
     transition: transform 0.2s ease;
-    border-radius: 8px;
+    outline: none;
 
-    &:hover {
-      background-color: rgba(0, 0, 0, 0.05);
+    &:focus {
+      outline: none;
     }
 
     &:active {
       transform: scale(0.95);
-    }
-
-    &--active {
-      background-color: rgba(0, 0, 0, 0.08);
     }
   }
 }
