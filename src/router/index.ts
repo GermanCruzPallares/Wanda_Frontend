@@ -40,10 +40,11 @@ const router = createRouter({
       component: () => import('../views/AddTransactionView.vue'),
     }, 
     {
-      path: '/home/contributions',
+      path: '/home/:objectiveId/contributions',
       name: 'ObjectiveContributions',
-      component: () => import('../views/ObjectiveContributionsView.vue')
-    }             
+      component: () => import('../views/ObjectiveContributionsView.vue'),
+      props: true 
+    }         
   ],
 })
 
