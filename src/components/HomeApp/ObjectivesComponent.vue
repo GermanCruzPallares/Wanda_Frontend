@@ -101,9 +101,13 @@ const handleAddObjective = () => {
   background-color: $section-bg-primary;
   border-radius: $card-border-radius;
   padding: 1.25rem;
-  transition: transform $transition-speed $transition-ease, 
+  transition: transform $transition-speed $transition-ease,
               box-shadow $transition-speed $transition-ease;
 
+  &:hover {
+    transform: translateX(2px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  }
   &__header {
     display: flex;
     justify-content: space-between;

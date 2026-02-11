@@ -20,9 +20,7 @@
           >
             <!-- Icono de categoría -->
             <div class="transaction-item__icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                <circle cx="12" cy="12" r="10" opacity="0.3"/>
-              </svg>
+              <component :is="getCategoryIcon(transaction.category)" />
             </div>
             
             <div class="transaction-item__info">
@@ -67,6 +65,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import SectionTitle from '@/components/SectionTitle.vue';
+import { getCategoryIcon } from '@/components/icons/CategoryIcons';
 
 // Tipos que coinciden con el backend
 export type TransactionType = 'expense' | 'income';

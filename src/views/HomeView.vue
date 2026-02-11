@@ -6,6 +6,7 @@ import CardComponent from '@/components/HomeApp/CardComponent.vue';
 import ObjectivesComponent from '@/components/HomeApp/ObjectivesComponent.vue';
 import TransactionsHistoryComponent from '@/components/HomeApp/TransactionsHistoryComponent.vue';
 import TopNav from '@/components/TopNav.vue';
+import AsideNav from '@/components/AsideNav.vue';
 import AccountSwitcherModal from '@/components/AccountSwitcherModal.vue';
 import type { Account } from '@/components/TopNav.vue';
 import type { Transaction } from '@/components/HomeApp/TransactionsHistoryComponent.vue';
@@ -35,10 +36,6 @@ const objectives = ref([
   }
 ]);
 
-// Transacciones de ejemplo (esto vendrá del backend)
-
-
-// Estado del modal de cuentas
 const isAccountModalOpen = ref(false);
 
 const accounts = ref<Account[]>([
@@ -78,16 +75,13 @@ const handleShowInfo = (id: string) => {
   console.log('Mostrar info del objetivo:', id);
 };
 
-const handleTransactionClick = (transactionId: string) => {
+const handleTransactionClick = (transactionId: number) => {
   console.log('Transacción clickeada:', transactionId);
-  
 };
 
 const handleLoadMore = () => {
   console.log('Cargar más transacciones');
- 
 };
-
 
 const transactions = ref<Transaction[]>([
   {
@@ -154,12 +148,12 @@ const transactions = ref<Transaction[]>([
     split_type: 'none',
     last_execution_date: null
   },
-{
+  {
     transaction_id: 5,
     account_id: 1,
     user_id: 1,
     objective_id: 0,
-    category: 'Vivienda',
+    category: 'Hogar',
     amount: 850.00,
     transaction_type: 'expense',
     concept: 'Alquiler Enero',
@@ -204,40 +198,70 @@ const transactions = ref<Transaction[]>([
   },  
 ]);
   
+const activeMenuItem = ref('inicio');
 
+const handleNavigate = (itemId: string) => {
+  activeMenuItem.value = itemId;
+  console.log('Navegando a:', itemId);
+};
 </script>
 
 <template>
-  <TopNav 
-    :accounts="accounts" 
+  <!-- Menú lateral (solo visible en tablet+) -->
+  <AsideNav 
+    :active-item="activeMenuItem"
+    :accounts="accounts"
+    @navigate="handleNavigate"
     @avatar-click="handleAvatarClick"
   />
   
+  <!-- TopNav (solo visible en móvil) -->
+  <TopNav 
+    :accounts="accounts" 
+    @avatar-click="handleAvatarClick"
+    class="mobile-only"
+  />
+  
   <main class="home-content">
-    <CardComponent></CardComponent>
-    
-    <BalanceComponent
-      :weekly-budget="200"
-      :current-week-expenses="80"
-      :today-day-of-week="currentDay"
-    ></BalanceComponent>
-    
-    <ObjectivesComponent
-      :objectives="objectives"
-      @add-objective="handleAddObjective"
-      @show-info="handleShowInfo"
-    ></ObjectivesComponent>
+    <!-- Card siempre arriba ocupando todo el ancho -->
+    <div class="home-content__header">
+      <CardComponent />
+    </div>
 
-    <TransactionsHistoryComponent
-      :transactions="transactions"
-      :initial-limit="5"
-      :load-more-increment="10"
-      @load-more="handleLoadMore"
-    ></TransactionsHistoryComponent>
+    <!-- Grid de 2 columnas en tablet+ -->
+    <div class="home-content__grid">
+      <!-- Columna izquierda: Balance + Objetivos -->
+      <div class="home-content__left">
+        <BalanceComponent
+          :weekly-budget="200"
+          :current-week-expenses="80"
+          :today-day-of-week="currentDay"
+        />
+        
+        <ObjectivesComponent
+          :objectives="objectives"
+          @add-objective="handleAddObjective"
+          @show-info="handleShowInfo"
+        />
+      </div>
+
+      <!-- Columna derecha: Historial -->
+      <div class="home-content__right">
+        <TransactionsHistoryComponent
+          :transactions="transactions"
+          :initial-limit="5"
+          :load-more-increment="10"
+          @transaction-click="handleTransactionClick"
+          @load-more="handleLoadMore"
+        />
+      </div>
+    </div>
   </main>
   
-  <BottomNav></BottomNav>
+  <!-- BottomNav (solo visible en móvil) -->
+  <BottomNav class="mobile-only" />
 
+  <!-- Modal de cambio de cuenta -->
   <AccountSwitcherModal
     :is-open="isAccountModalOpen"
     :accounts="accounts"
@@ -247,9 +271,54 @@ const transactions = ref<Transaction[]>([
   />
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .home-content {
+  min-height: 100vh;
   padding-top: 100px;
   padding-bottom: 80px;
+
+  // Tablet y Desktop
+  @media (min-width: 768px) {
+    margin-left: 240px; // Ancho del AsideNav
+    padding: 40px 20px;
+    max-width: calc(100vw - 240px);
+  }
+
+  &__header {
+    width: 100%;
+    margin-bottom: 20px;
+  }
+
+  &__grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+
+    // Layout de 2 columnas en tablet+
+    @media (min-width: 768px) {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+  }
+
+  &__left,
+  &__right {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+
+    @media (min-width: 768px) {
+      gap: 20px;
+    }
+  }
+}
+
+// Ocultar en tablet+
+.mobile-only {
+  @media (min-width: 768px) {
+    display: none;
+  }
 }
 </style>
