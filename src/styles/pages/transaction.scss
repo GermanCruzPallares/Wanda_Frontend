@@ -71,11 +71,16 @@
 
 .categories-slider {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   overflow-x: auto;
-  padding: 10px 0;
+  width: 100%;
+  padding: 10px 20px;
   gap: 15px;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
+  overflow-y: hidden;
 
   &::-webkit-scrollbar {
     display: none;
@@ -90,8 +95,11 @@
     gap: 8px;
     cursor: pointer;
     min-width: 60px;
+    flex: 0 0 auto;
     opacity: 0.6;
     transition: opacity 0.2s;
+    touch-action: pan-x;
+    overscroll-behavior-y: none;
 
     &.selected {
       opacity: 1;
@@ -135,6 +143,22 @@
     text-align: left;
     cursor: pointer;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    width: 100%;
+
+    .toggle-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+
+    .arrow-icon {
+      transition: transform 0.3s ease;
+
+      &.is-expanded {
+        transform: rotate(180deg);
+      }
+    }
   }
 
   .concept-input-wrapper {
@@ -164,7 +188,6 @@
     align-items: center;
     font-weight: 500;
     color: #333;
-    margin-bottom: 10px;
   }
 
   .recurring-options {
@@ -300,14 +323,38 @@
   left: 0;
   width: 100%;
   background: #9e9ea5;
-  z-index: 999;
-  padding: 20px;
-  padding-bottom: 40px;
+  z-index: 9999;
+  padding: 0 20px 40px 20px;
   border-radius: 25px 25px 0 0;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
   align-items: center;
+  transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+  transform: translateY(calc(100% - 40px));
+
+  &.is-visible {
+    transform: translateY(0);
+  }
+}
+
+.handle-area {
+  width: 100%;
+  height: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: grab;
+  margin-bottom: 0;
+  touch-action: none;
+}
+
+.handle-bar {
+  width: 10rem;
+  height: 5px;
+  background-color: #dad8d8;
+  border-radius: 3px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .numeric-grid {
@@ -345,7 +392,7 @@
   background: #333333;
   color: white;
   border: none;
-  height: 3rem;
+  height: 2.5rem;
   width: 75%;
   max-width: 320px;
   border-radius: 30px;
@@ -358,10 +405,6 @@
   margin-right: auto;
 
   &:active {
-    transform: scale(0.98);
+    transform: scale(0.97);
   }
-}
-
-.handle-bar {
-  display: none;
 }

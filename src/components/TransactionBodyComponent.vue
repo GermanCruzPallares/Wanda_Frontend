@@ -1,10 +1,11 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import IconCutlery from './icons/IconCutlery.vue'
-import IconCar from './icons/IconCar.vue'
-import IconShoppingCart from './icons/IconShoppingCart.vue'
-import IconBullhorn from './icons/IconBullhorn.vue'
-import IconMobile from './icons/IconMobile.vue'
+import IconFood from './icons/IconFood.vue'
+import IconTransport from './icons/IconTransport.vue'
+import IconShopping from './icons/IconShopping.vue'
+import IconInvoice from './icons/IconInvoice.vue'
+import IconSubscription from './icons/IconSubscription.vue'
+import IconArrow from './icons/IconArrow.vue'
 
 const type = ref('expense')
 const amount = ref('0')
@@ -15,10 +16,29 @@ const isRecurring = ref(false)
 const frequency = ref('monthly')
 const duration = ref('defined')
 const endDate = ref()
-const showKeypad = ref(false)
+const showKeypad = ref(true)
 
 const keypadRef = ref(null)
 const amountTriggerRef = ref(null)
+
+const touchStartY = ref(0)
+const touchEndY = ref(0)
+
+const onTouchStart = (e) => {
+  touchStartY.value = e.changedTouches[0].screenY
+}
+
+const onTouchMove = (e) => {
+  touchEndY.value = e.changedTouches[0].screenY
+}
+
+const onTouchEnd = () => {
+  if (touchStartY.value - touchEndY.value > 50) {
+    showKeypad.value = true
+  } else if (touchEndY.value - touchStartY.value > 50) {
+    showKeypad.value = false
+  }
+}
 
 const openKeypad = () => {
   showKeypad.value = true
@@ -28,34 +48,13 @@ const closeKeypad = () => {
   showKeypad.value = false
 }
 
-const handleClickOutside = (event) => {
-  if (
-    showKeypad.value &&
-    keypadRef.value &&
-    !keypadRef.value.contains(event.target) &&
-    amountTriggerRef.value &&
-    !amountTriggerRef.value.contains(event.target)
-  ) {
-    showKeypad.value = false
-  }
-}
-
-onMounted(() => {
-  window.addEventListener('click', handleClickOutside)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('click', handleClickOutside)
-})
-
 const categories = [
-  { id: 1, name: 'Comida', icon: IconCutlery },
-  { id: 2, name: 'Transporte', icon: IconCar },
-  { id: 3, name: 'Compras', icon: IconShoppingCart },
-  { id: 4, name: 'Facturas', icon: IconBullhorn },
-  { id: 5, name: 'Subs', icon: IconMobile },
+  { id: 1, name: 'Comida', icon: IconFood },
+  { id: 2, name: 'Transporte', icon: IconTransport },
+  { id: 3, name: 'Compras', icon: IconShopping },
+  { id: 4, name: 'Facturas', icon: IconInvoice },
+  { id: 5, name: 'Subs', icon: IconSubscription },
 ]
-
 const formattedAmount = computed(() => {
   return amount.value
 })
@@ -118,23 +117,27 @@ const save = () => {
 
       <div class="categories-slider">
         <button
-          v-for="cat in categories"
-          :key="cat.id"
+          v-for="category in categories"
+          :key="category.id"
           class="category-item"
-          :class="{ selected: selectedCategory === cat.id }"
-          @click="selectedCategory = cat.id"
+          :class="{ selected: selectedCategory === category.id }"
+          @click="selectedCategory = category.id"
         >
           <div class="icon-circle">
-            <component :is="cat.icon" class="category-icon" />
+            <component :is="category.icon" class="category-icon" />
           </div>
-          <span class="cat-name">{{ cat.name }}</span>
+          <span class="cat-name">{{ category.name }}</span>
         </button>
       </div>
 
       <div class="concept-section">
         <button class="concept-toggle" @click="toggleConcept">
-          <span v-if="!conceptExpanded">v Añadir concepto (opcional)</span>
-          <span v-else>∧ Ocultar concepto</span>
+          <div class="toggle-content">
+            <span class="toggle-text">{{
+              conceptExpanded ? 'Ocultar concepto' : 'Añadir concepto (opcional)'
+            }}</span>
+            <IconArrow class="arrow-icon" :class="{ 'is-expanded': conceptExpanded }" />
+          </div>
         </button>
         <div v-if="conceptExpanded" class="concept-input-wrapper">
           <input
@@ -196,7 +199,16 @@ const save = () => {
       </div>
     </div>
 
-    <div v-if="showKeypad" class="keypad-overlay" ref="keypadRef">
+    <div class="keypad-overlay" :class="{ 'is-visible': showKeypad }" ref="keypadRef">
+      <div
+        class="handle-area"
+        @click="showKeypad = !showKeypad"
+        @touchstart="onTouchStart"
+        @touchmove="onTouchMove"
+        @touchend="onTouchEnd"
+      >
+        <div class="handle-bar"></div>
+      </div>
       <div class="numeric-grid">
         <button @click="handleKeypad(1)">1</button>
         <button @click="handleKeypad(2)">2</button>
