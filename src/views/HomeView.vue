@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import BottomNav from '@/components/BottomNav.vue';
+import BottomNav from '@/components/Navs/BottomNav.vue';
 import BalanceComponent from '@/components/HomeApp/BalanceComponent.vue';
 import CardComponent from '@/components/HomeApp/CardComponent.vue';
 import ObjectivesComponent from '@/components/HomeApp/ObjectivesComponent.vue';
 import TransactionsHistoryComponent from '@/components/HomeApp/TransactionsHistoryComponent.vue';
-import TopNav from '@/components/TopNav.vue';
-import AsideNav from '@/components/AsideNav.vue';
-import AccountSwitcherModal from '@/components/AccountSwitcherModal.vue';
-import type { AccountUI } from '@/types/models';
+import TopNav from '@/components/Navs/TopNav.vue';
+import AsideNav from '@/components/Navs/AsideNav.vue';
+import AccountSwitcherModal from '@/components/Modals/AccountSwitcherModal.vue';
+import type { AccountUI, User } from '@/types/models';
 import type { Transaction } from '@/components/HomeApp/TransactionsHistoryComponent.vue';
 
 const getCurrentDayOfWeek = (): number => {
@@ -18,6 +18,28 @@ const getCurrentDayOfWeek = (): number => {
 };
 
 const currentDay = getCurrentDayOfWeek();
+
+// Usuario actual logueado (esto vendrá de tu sistema de autenticación)
+const currentUser = ref<User>({
+  user_id: 1,
+  name: 'Clara',
+  email: 'clara@wandaapp.com'
+});
+
+// Cuentas del usuario (vendrán del backend)
+const accounts = ref<AccountUI[]>([
+  {
+    account_id: 1,
+    name: 'Clara',
+    account_type: 'personal',
+    amount: 13789.37,
+    weekly_budget: 200,
+    monthly_budget: 2000,
+    account_picture_url: 'https://i.pravatar.cc/150?img=5',
+    creation_date: new Date(),
+    isActive: true
+  }
+]);
 
 const objectives = ref([
   {
@@ -38,21 +60,6 @@ const objectives = ref([
 
 const isAccountModalOpen = ref(false);
 
-// Cambiar de Account[] a AccountUI[]
-const accounts = ref<AccountUI[]>([
-  {
-    account_id: 1,
-    name: 'Clara',
-    account_type: 'personal',
-    amount: 13789.37,
-    weekly_budget: 200,
-    monthly_budget: 2000,
-    account_picture_url: 'https://i.pravatar.cc/150?img=5',
-    creation_date: new Date(),
-    isActive: true
-  }
-]);
-
 const handleAvatarClick = () => {
   isAccountModalOpen.value = true;
 };
@@ -61,7 +68,6 @@ const handleCloseModal = () => {
   isAccountModalOpen.value = false;
 };
 
-// Cambiar de string a number
 const handleSelectAccount = (accountId: number) => {
   accounts.value = accounts.value.map(acc => ({
     ...acc,
@@ -70,8 +76,38 @@ const handleSelectAccount = (accountId: number) => {
   console.log('Cuenta seleccionada:', accountId);
 };
 
-const handleAddAccount = () => {
-  console.log('Añadir nueva cuenta');
+const handleCreateJointAccount = (accountName: string, userEmails: string[]) => {
+  console.log('Crear cuenta conjunta:', accountName, userEmails);
+  
+  // TODO: Llamada al backend
+  // const response = await fetch('/api/accounts/joint', {
+  //   method: 'POST',
+  //   headers: {
+  //     'Content-Type': 'application/json',
+  //   },
+  //   body: JSON.stringify({
+  //     name: accountName,
+  //     user_emails: userEmails,
+  //     account_type: 'joint'
+  //   })
+  // });
+  // const newAccountData = await response.json();
+  
+  // Por ahora, simulación local
+  const newAccount: AccountUI = {
+    account_id: accounts.value.length + 1,
+    name: accountName,
+    account_type: 'joint',
+    amount: 0,
+    weekly_budget: 0,
+    monthly_budget: 0,
+    account_picture_url: `https://i.pravatar.cc/150?img=${accounts.value.length + 1}`,
+    creation_date: new Date(),
+    isActive: false
+  };
+  
+  accounts.value.push(newAccount);
+  console.log('Nueva cuenta creada:', newAccount);
 };
 
 const handleAddObjective = () => {
@@ -267,9 +303,10 @@ const handleNavigate = (itemId: string) => {
   <AccountSwitcherModal
     :is-open="isAccountModalOpen"
     :accounts="accounts"
+    :current-user="currentUser"
     @close="handleCloseModal"
     @select-account="handleSelectAccount"
-    @add-account="handleAddAccount"
+    @create-joint-account="handleCreateJointAccount"
   />
 </template>
 
@@ -281,7 +318,7 @@ const handleNavigate = (itemId: string) => {
 
   // Tablet y Desktop
   @media (min-width: 768px) {
-    margin-left: 240px; 
+    margin-left: 240px; // Ancho del AsideNav
     padding: 40px 20px;
     max-width: calc(100vw - 240px);
   }

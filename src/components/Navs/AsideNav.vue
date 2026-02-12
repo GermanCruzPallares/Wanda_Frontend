@@ -2,7 +2,7 @@
   <aside class="aside-nav">
     <!-- Logo -->
     <div class="aside-nav__logo">
-      <img src="../images/OscuroPrincipal.png" alt="Wanda Logo" class="logo-image" />
+      <img src="../../images/OscuroPrincipal.png" alt="Wanda Logo" class="logo-image" />
     </div>
 
     <!-- Menú principal de navegación -->
@@ -39,10 +39,10 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { AccountUI } from '@/types/models';
-import HomeIcon from './icons/HomeIcon.vue';
-import PlusIcon from './icons/PlusIcon.vue';
-import CalculatorIcon from './icons/CalculatorIcon.vue';
-import UserIcon from './icons/UserIcon.vue';
+import HomeIcon from '../icons/HomeIcon.vue';
+import PlusIcon from '../icons/PlusIcon.vue';
+import CalculatorIcon from '../icons/CalculatorIcon.vue';
+import UserIcon from '../icons/UserIcon.vue';
 
 interface MenuItem {
   id: string;

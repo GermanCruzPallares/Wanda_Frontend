@@ -1,7 +1,7 @@
 <template>
   <div class="header-nav">
     <div class="header-nav__logo">
-      <img src="../images/OscuroReducido.png" alt="Logo" class="logo-image" />
+      <img src="../../images/OscuroReducido.png" alt="Logo" class="logo-image" />
     </div>
     
     <div class="header-nav__avatar">
