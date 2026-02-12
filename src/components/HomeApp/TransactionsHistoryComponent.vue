@@ -3,8 +3,14 @@
     <SectionTitle title="| Historial" />
     
     <section class="transactions-history">
+      <!-- Estado de carga -->
+      <div v-if="isLoading" class="loading-state">
+        <p>Cargando transacciones...</p>
+      </div>
+
       <!-- Transacciones agrupadas por fecha -->
       <div 
+        v-else
         v-for="group in displayedTransactions" 
         :key="group.date"
         class="transaction-group"
@@ -63,31 +69,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import SectionTitle from '@/components/SectionTitle.vue';
 import { getCategoryIcon } from '@/components/icons/CategoryIcons';
-
-// Tipos que coinciden con el backend
-export type TransactionType = 'expense' | 'income';
-export type FrequencyType = 'weekly' | 'monthly' | 'yearly' | null;
-export type SplitType = 'none' | 'equal' | 'percentage' | 'custom';
-
-export interface Transaction {
-  transaction_id: number;
-  account_id: number;
-  user_id: number;
-  objective_id: number;
-  category: string;
-  amount: number;
-  transaction_type: TransactionType;
-  concept: string;
-  transaction_date: Date | string;
-  isRecurring: boolean;
-  frequency?: FrequencyType;
-  end_date?: Date | string | null;
-  split_type: SplitType;
-  last_execution_date?: Date | string | null;
-}
+import type { Transaction } from '@/types/models';
 
 interface TransactionGroup {
   date: string;
@@ -96,22 +81,204 @@ interface TransactionGroup {
 }
 
 interface Props {
-  transactions: Transaction[];
+  accountId?: number; // ✅ Recibe el ID de la cuenta activa
   initialLimit?: number;
   loadMoreIncrement?: number;
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  accountId: 1,
   initialLimit: 5,
   loadMoreIncrement: 10
 });
 
 const emit = defineEmits<{
   transactionClick: [transactionId: number];
-  loadMore: [];
+  transactionsLoaded: [transactions: Transaction[]]; // ✅ Nuevo evento
 }>();
 
+// ✅ Los datos ahora están en el HIJO
+const transactions = ref<Transaction[]>([]);
+const isLoading = ref(false);
 const displayLimit = ref(props.initialLimit);
+
+// ✅ Simular llamada a la API
+const fetchTransactions = async () => {
+  console.log(`📡 TransactionsHistoryComponent: Simulando llamada GET /api/transactions?account_id=${props.accountId}`);
+  
+  isLoading.value = true;
+  
+  // Simular delay de red
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  // TODO: En producción, esto sería:
+  // const response = await fetch(`/api/transactions?account_id=${props.accountId}`);
+  // const data = await response.json();
+  
+
+  
+  // Por ahora, datos simulados
+  const mockData: Transaction[] = [
+    {
+      transaction_id: 1,
+      account_id: props.accountId,
+      user_id: 1,
+      objective_id: 0,
+      category: 'Alimentación',
+      amount: 54.15,
+      transaction_type: 'expense',
+      concept: 'Mercadona',
+      transaction_date: new Date(2026, 0, 2),
+      isRecurring: true,
+      frequency: 'weekly',
+      end_date: null,
+      split_type: 'none',
+      last_execution_date: new Date(2026, 0, 2)
+    },
+    {
+      transaction_id: 2,
+      account_id: props.accountId,
+      user_id: 1,
+      objective_id: 0,
+      category: 'Alimentación',
+      amount: 54.15,
+      transaction_type: 'expense',
+      concept: 'Mercadona',
+      transaction_date: new Date(2026, 0, 2),
+      isRecurring: true,
+      frequency: 'weekly',
+      end_date: null,
+      split_type: 'none',
+      last_execution_date: null
+    },
+    {
+      transaction_id: 3,
+      account_id: props.accountId,
+      user_id: 1,
+      objective_id: 0,
+      category: 'Salario',
+      amount: 2500.00,
+      transaction_type: 'income',
+      concept: 'Nómina',
+      transaction_date: new Date(2026, 0, 1),
+      isRecurring: true,
+      frequency: 'monthly',
+      end_date: null,
+      split_type: 'none',
+      last_execution_date: new Date(2026, 0, 1)
+    },
+    {
+      transaction_id: 4,
+      account_id: props.accountId,
+      user_id: 1,
+      objective_id: 0,
+      category: 'Transporte',
+      amount: 45.50,
+      transaction_type: 'expense',
+      concept: 'Gasolina',
+      transaction_date: new Date(2026, 0, 1),
+      isRecurring: false,
+      frequency: null,
+      end_date: null,
+      split_type: 'none',
+      last_execution_date: null
+    },
+    {
+      transaction_id: 5,
+      account_id: props.accountId,
+      user_id: 1,
+      objective_id: 0,
+      category: 'Hogar',
+      amount: 850.00,
+      transaction_type: 'expense',
+      concept: 'Alquiler Enero',
+      transaction_date: new Date(2026, 0, 1),
+      isRecurring: true,
+      frequency: 'monthly',
+      end_date: null,
+      split_type: 'none',
+      last_execution_date: new Date(2026, 0, 1)
+    },
+    {
+      transaction_id: 6,
+      account_id: props.accountId,
+      user_id: 1,
+      objective_id: 0,
+      category: 'Suscripciones',
+      amount: 14.99,
+      transaction_type: 'expense',
+      concept: 'Netflix',
+      transaction_date: new Date(2026, 0, 3),
+      isRecurring: true,
+      frequency: 'monthly',
+      end_date: null,
+      split_type: 'none',
+      last_execution_date: new Date(2026, 0, 3)
+    },
+    {
+      transaction_id: 7,
+      account_id: props.accountId,
+      user_id: 1,
+      objective_id: 0,
+      category: 'Ocio',
+      amount: 32.40,
+      transaction_type: 'expense',
+      concept: 'Cine y Palomitas',
+      transaction_date: new Date(2026, 0, 4),
+      isRecurring: false,
+      frequency: null,
+      end_date: null,
+      split_type: 'none',
+      last_execution_date: null
+    },
+    // ✅ Añadidas transacciones de tipo 'saving'
+    {
+      transaction_id: 101,
+      account_id: props.accountId,
+      user_id: 1,
+      objective_id: 1,
+      category: 'Ahorro',
+      amount: 500,
+      transaction_type: 'saving',
+      concept: 'Aportación coche',
+      transaction_date: new Date(2026, 0, 10, 10, 30),
+      isRecurring: true,
+      frequency: 'monthly',
+      end_date: null,
+      split_type: 'none',
+      last_execution_date: new Date(2026, 0, 10, 10, 30)
+    },
+    {
+      transaction_id: 102,
+      account_id: props.accountId,
+      user_id: 1,
+      objective_id: 2,
+      category: 'Ahorro',
+      amount: 500,
+      transaction_type: 'saving',
+      concept: 'Aportación casa',
+      transaction_date: new Date(2026, 0, 10, 15, 45),
+      isRecurring: true,
+      frequency: 'monthly',
+      end_date: null,
+      split_type: 'none',
+      last_execution_date: new Date(2026, 0, 10, 15, 45)
+    }
+  ];
+  
+  transactions.value = mockData;
+  isLoading.value = false;
+  
+  // ✅ Emitir los datos al padre
+  emit('transactionsLoaded', mockData);
+  
+  console.log('✅ TransactionsHistoryComponent: Transacciones cargadas:', mockData.length);
+};
+
+
+onMounted(() => {
+  fetchTransactions();
+});
 
 // Convertir fecha string a Date si es necesario
 const parseDate = (date: Date | string): Date => {
@@ -140,7 +307,7 @@ const getDescription = (transaction: Transaction): string => {
 const groupedTransactions = computed<TransactionGroup[]>(() => {
   const groups = new Map<string, Transaction[]>();
   
-  const sortedTransactions = [...props.transactions].sort(
+  const sortedTransactions = [...transactions.value].sort(
     (a, b) => parseDate(b.transaction_date).getTime() - parseDate(a.transaction_date).getTime()
   );
   
@@ -190,7 +357,7 @@ const displayedTransactions = computed(() => {
 });
 
 const canLoadMore = computed(() => {
-  const totalTransactions = props.transactions.length;
+  const totalTransactions = transactions.value.length;
   return displayLimit.value < totalTransactions;
 });
 
@@ -206,14 +373,14 @@ const formatDate = (date: Date): string => {
   return `${day} ${month} ${year}`;
 };
 
-const formatAmount = (amount: number, type: TransactionType): string => {
+const formatAmount = (amount: number, type: string): string => {
   const formatted = amount.toFixed(2).replace('.', ',');
   return type === 'expense' ? `-${formatted} €` : `+${formatted} €`;
 };
 
 const loadMore = () => {
   displayLimit.value += props.loadMoreIncrement;
-  emit('loadMore');
+  console.log('📈 Mostrando más transacciones. Límite actual:', displayLimit.value);
 };
 
 const handleTransactionClick = (transactionId: number) => {
@@ -228,8 +395,19 @@ const handleTransactionClick = (transactionId: number) => {
   padding: 0 $section-margin-horizontal 1.5rem;
 }
 
-.transaction-group {
+.loading-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: $color-text-gray;
   
+  p {
+    margin: 0;
+    font-size: 14px;
+  }
+}
+
+.transaction-group {
+  margin-bottom: 1.5rem;
 
   &__date {
     font-size: 12px;

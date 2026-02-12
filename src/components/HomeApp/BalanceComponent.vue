@@ -2,7 +2,13 @@
   <div>
     <SectionTitle title="| Balance" />
     
-    <div class="weekly-balance">
+    <!-- Estado de carga -->
+    <div v-if="isLoading" class="loading-state">
+      <p>Cargando balance...</p>
+    </div>
+
+    <!-- Contenido -->
+    <div v-else class="weekly-balance">
       <div class="weekly-balance__header">
         <h4 class="weekly-balance__title">Balance Semanal</h4>
         <button class="weekly-balance__info-btn" @click="openInfoModal">
@@ -103,33 +109,44 @@
         </div>
       </div>
     </div>
-      <InfoModal
-          :is-open="isInfoModalOpen"
-          title="¿ Como funciona ?"
-          content='Comparamos tu gasto actual con el tiempo transcurrido. Si la barra de gasto está detrás del indicador "Hoy", ¡vas genial! Si está adelante, es momento de ajustar un poco.'
-          @close="closeInfoModal"
-      />    
+    <InfoModal
+        :is-open="isInfoModalOpen"
+        title="¿ Como funciona ?"
+        content='Comparamos tu gasto actual con el tiempo transcurrido. Si la barra de gasto está detrás del indicador "Hoy", ¡vas genial! Si está adelante, es momento de ajustar un poco.'
+        @close="closeInfoModal"
+    />    
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch, onMounted } from 'vue';
 import SectionTitle from '@/components/SectionTitle.vue';
 import InfoModal from './InfoModal.vue';
+import type { Account } from '@/types/models';
 
 interface Props {
-  weeklyBudget?: number;        // Presupuesto semanal
-  currentWeekExpenses?: number; // Gastos acumulados de la semana
-  todayDayOfWeek?: number;      // 0=Lunes, 6=Domingo
+  accountId?: number;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  weeklyBudget: 160,
-  currentWeekExpenses: 80,
-  todayDayOfWeek: 4 // Jueves por defecto
-});
+const props = defineProps<Props>();
 
-// Estado del modal de información
+const emit = defineEmits<{
+  accountLoaded: [account: Account];
+}>();
+
+// ✅ Lógica del día de la semana DENTRO del componente
+const getCurrentDayOfWeek = (): number => {
+  const today = new Date();
+  const day = today.getDay(); 
+  return day === 0 ? 6 : day - 1; // 0=Domingo → 6, 1=Lunes → 0, etc.
+};
+
+const todayDayOfWeek = ref(getCurrentDayOfWeek());
+
+// ✅ Estado local
+const account = ref<Account | null>(null);
+const currentWeekExpenses = ref(0);
+const isLoading = ref(false);
 const isInfoModalOpen = ref(false);
 
 const openInfoModal = () => {
@@ -140,16 +157,102 @@ const closeInfoModal = () => {
   isInfoModalOpen.value = false;
 };
 
+// ✅ Simular llamada GET /api/accounts/{id}
+const fetchAccount = async (accountId: number) => {
+  console.log(`📡 BalanceComponent: Simulando llamada GET /api/accounts/${accountId}`);
+  
+  isLoading.value = true;
+  
+  // Simular delay de red
+  await new Promise(resolve => setTimeout(resolve, 400));
+  
+  // TODO: En producción, esto sería:
+  // const response = await fetch(`/api/accounts/${accountId}`);
+  // const accountData = await response.json();
+  
+  // Por ahora, datos simulados
+  const mockAccounts: Record<number, Account> = {
+    1: {
+      account_id: 1,
+      name: 'Clara',
+      account_type: 'personal',
+      amount: 13789.37,
+      weekly_budget: 200,
+      monthly_budget: 2000,
+      account_picture_url: 'https://i.pravatar.cc/150?img=5',
+      creation_date: new Date()
+    },
+    2: {
+      account_id: 2,
+      name: 'Cuenta Conjunta',
+      account_type: 'joint',
+      amount: 25600.50,
+      weekly_budget: 300,
+      monthly_budget: 3500,
+      account_picture_url: 'https://i.pravatar.cc/150?img=2',
+      creation_date: new Date()
+    },
+    3: {
+      account_id: 3,
+      name: 'Ahorros',
+      account_type: 'personal',
+      amount: 8430.20,
+      weekly_budget: 150,
+      monthly_budget: 1500,
+      account_picture_url: 'https://i.pravatar.cc/150?img=3',
+      creation_date: new Date()
+    }
+  };
+  
+  const accountData = mockAccounts[accountId];
+  
+  if (accountData) {
+    account.value = accountData;
+    
+    // ✅ Calcular gastos de la semana (en producción vendría del backend o de las transacciones)
+    // Por ahora, simulamos que ha gastado ~40% del presupuesto semanal
+    currentWeekExpenses.value = Math.round(accountData.weekly_budget * 0.4);
+    
+    isLoading.value = false;
+    
+    // ✅ Emitir la cuenta completa al padre
+    emit('accountLoaded', accountData);
+    
+    console.log('✅ BalanceComponent: Cuenta cargada:', accountData);
+  } else {
+    console.error('❌ BalanceComponent: Cuenta no encontrada');
+    isLoading.value = false;
+  }
+};
+
+// ✅ Cargar cuando se monta el componente
+onMounted(() => {
+  if (props.accountId) {
+    fetchAccount(props.accountId);
+  }
+});
+
+// ✅ Recargar cuando cambia la cuenta
+watch(() => props.accountId, (newAccountId) => {
+  if (newAccountId) {
+    console.log('🔄 BalanceComponent: Cuenta cambiada, recargando...');
+    fetchAccount(newAccountId);
+  }
+});
+
 const weekDays = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
 // Cálculos
+const weeklyBudget = computed(() => account.value?.weekly_budget || 0);
+
 const spentPercentage = computed(() => {
-  return Math.round((props.currentWeekExpenses / props.weeklyBudget) * 100);
+  if (weeklyBudget.value === 0) return 0;
+  return Math.round((currentWeekExpenses.value / weeklyBudget.value) * 100);
 });
 
+// ✅ CORREGIDO: Usar todayDayOfWeek.value en lugar de props.todayDayOfWeek
 const weekProgress = computed(() => {
-  // Porcentaje de semana transcurrida
-  return Math.round(((props.todayDayOfWeek + 1) / 7) * 100);
+  return Math.round(((todayDayOfWeek.value + 1) / 7) * 100);
 });
 
 const difference = computed(() => {
@@ -175,11 +278,11 @@ const spendingStatus = computed(() => {
 
 // Formateo
 const formattedBudget = computed(() => {
-  return `${props.weeklyBudget}€`;
+  return `${weeklyBudget.value}€`;
 });
 
 const formattedExpenses = computed(() => {
-  return `${props.currentWeekExpenses}€`;
+  return `${currentWeekExpenses.value}€`;
 });
 
 const formattedDifference = computed(() => {
@@ -223,14 +326,29 @@ const messageSubtitle = computed(() => {
   }
 });
 
+// ✅ CORREGIDO: Usar todayDayOfWeek.value
 const isToday = (day: string): boolean => {
   const dayIndex = weekDays.indexOf(day);
-  return dayIndex === props.todayDayOfWeek;
+  return dayIndex === todayDayOfWeek.value;
 };
 </script>
 
 <style scoped lang="scss">
 @import '@/styles/base/variables.scss';
+
+.loading-state {
+  margin: 0 $section-margin-horizontal;
+  padding: 40px;
+  text-align: center;
+  background-color: $section-bg-primary;
+  border-radius: $section-border-radius;
+  
+  p {
+    margin: 0;
+    font-size: 14px;
+    color: $color-text-gray;
+  }
+}
 
 .weekly-balance {
   margin: 0 $section-margin-horizontal;
@@ -266,64 +384,65 @@ const isToday = (day: string): boolean => {
 
     &:hover {
       color: $color-text;
-    }}
-  
-&__message {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px 16px;
-  border-radius: $small-border-radius;
-  margin-bottom: 20px;
-  
-  &--success {
-    background-color: $bg-success;
-    
-    .message-icon {
-      color: $bg-success-text; 
-    }
-    
-    .message-title {
-      color: $bg-success-text;
-    }
-    
-    .message-subtitle {
-      color: $bg-success-text-light;
     }
   }
   
-  &--warning {
-    background-color: $bg-warning;
+  &__message {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: $small-border-radius;
+    margin-bottom: 20px;
     
-    .message-icon {
-      color: $bg-warning-text; 
+    &--success {
+      background-color: $bg-success;
+      
+      .message-icon {
+        color: $bg-success-text; 
+      }
+      
+      .message-title {
+        color: $bg-success-text;
+      }
+      
+      .message-subtitle {
+        color: $bg-success-text-light;
+      }
     }
     
-    .message-title {
-      color: $bg-warning-text;
+    &--warning {
+      background-color: $bg-warning;
+      
+      .message-icon {
+        color: $bg-warning-text; 
+      }
+      
+      .message-title {
+        color: $bg-warning-text;
+      }
+      
+      .message-subtitle {
+        color: $bg-warning-text-light;
+      }
     }
     
-    .message-subtitle {
-      color: $bg-warning-text-light;
+    &--danger {
+      background-color: $bg-danger;
+      
+      .message-icon {
+        color: $bg-danger-text; 
+      }
+      
+      .message-title {
+        color: $bg-danger-text;
+      }
+      
+      .message-subtitle {
+        color: $bg-danger-text-light;
+      }
     }
   }
-  
-  &--danger {
-    background-color: $bg-danger;
-    
-    .message-icon {
-      color: $bg-danger-text; 
-    }
-    
-    .message-title {
-      color: $bg-danger-text;
-    }
-    
-    .message-subtitle {
-      color: $bg-danger-text-light;
-    }
-  }
-}
   
   .message-icon {
     display: flex;

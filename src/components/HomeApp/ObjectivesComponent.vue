@@ -47,9 +47,11 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted } from 'vue';
 import { RouterLink } from 'vue-router';
 import SectionTitle from '@/components/SectionTitle.vue';
 
+// Interfaz local (en producción vendrá del backend)
 interface Objective {
   id: string;
   name: string;
@@ -58,15 +60,55 @@ interface Objective {
   progress: number;
 }
 
-interface Props {
-  objectives: Objective[];
-}
-
-const props = defineProps<Props>();
-
 const emit = defineEmits<{
   addObjective: [];
+  objectivesLoaded: [objectives: Objective[]]; // ✅ Nuevo evento
 }>();
+
+// ✅ Los datos ahora están en el HIJO
+const objectives = ref<Objective[]>([]);
+
+// ✅ Simular llamada a la API
+const fetchObjectives = async () => {
+  console.log('📡 ObjectivesComponent: Simulando llamada GET /api/objectives');
+  
+  // Simular delay de red
+  await new Promise(resolve => setTimeout(resolve, 300));
+  
+  // TODO: En producción, esto sería:
+  // const response = await fetch('/api/objectives?account_id=1');
+  // const data = await response.json();
+  
+  // Por ahora, datos simulados
+  const mockData: Objective[] = [
+    {
+      id: '1',
+      name: 'Coche nuevo',
+      currentAmount: 7000,
+      targetAmount: 10000,
+      progress: 70
+    },
+    {
+      id: '2',
+      name: 'Entrada Casa',
+      currentAmount: 3756,
+      targetAmount: 20000,
+      progress: 20
+    }
+  ];
+  
+  objectives.value = mockData;
+  
+  // ✅ Emitir los datos al padre
+  emit('objectivesLoaded', mockData);
+  
+  console.log('✅ ObjectivesComponent: Objetivos cargados:', mockData);
+};
+
+// ✅ Cargar datos cuando el componente se monta
+onMounted(() => {
+  fetchObjectives();
+});
 
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('es-ES', {
@@ -90,7 +132,7 @@ const handleAddObjective = () => {
 
   @media (min-width: 768px) {
     padding: 0 0 1.5rem 0;
-        margin: 0 16px;
+    margin: 0 16px;
   }
 
   &__list {

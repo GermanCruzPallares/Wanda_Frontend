@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import BottomNav from '@/components/Navs/BottomNav.vue';
 import BalanceComponent from '@/components/HomeApp/BalanceComponent.vue';
 import CardComponent from '@/components/HomeApp/CardComponent.vue';
@@ -8,25 +8,14 @@ import TransactionsHistoryComponent from '@/components/HomeApp/TransactionsHisto
 import TopNav from '@/components/Navs/TopNav.vue';
 import AsideNav from '@/components/Navs/AsideNav.vue';
 import AccountSwitcherModal from '@/components/Modals/AccountSwitcherModal.vue';
-import type { AccountUI, User } from '@/types/models';
-import type { Transaction } from '@/components/HomeApp/TransactionsHistoryComponent.vue';
+import type { AccountUI, User, Transaction, Account } from '@/types/models';
 
-const getCurrentDayOfWeek = (): number => {
-  const today = new Date();
-  const day = today.getDay(); 
-  return day === 0 ? 6 : day - 1;
-};
-
-const currentDay = getCurrentDayOfWeek();
-
-// Usuario actual logueado (esto vendrá de tu sistema de autenticación)
 const currentUser = ref<User>({
   user_id: 1,
   name: 'Clara',
   email: 'clara@wandaapp.com'
 });
 
-// Cuentas del usuario (vendrán del backend)
 const accounts = ref<AccountUI[]>([
   {
     account_id: 1,
@@ -41,22 +30,24 @@ const accounts = ref<AccountUI[]>([
   }
 ]);
 
-const objectives = ref([
-  {
-    id: '1',
-    name: 'Coche nuevo',
-    currentAmount: 7000,
-    targetAmount: 10000,
-    progress: 70
-  },
-  {
-    id: '2',
-    name: 'Entrada Casa',
-    currentAmount: 3756,
-    targetAmount: 20000,
-    progress: 20
-  }
-]);
+const activeAccount = computed(() => {
+  return accounts.value.find(acc => acc.isActive);
+});
+
+const objectives = ref<any[]>([]);
+const transactions = ref<Transaction[]>([]);
+
+// Handlers
+const handleObjectivesLoaded = (loadedObjectives: any[]) => {
+  console.log('🎯 HomeView: Objetivos recibidos:', loadedObjectives);
+  objectives.value = loadedObjectives;
+};
+
+const handleTransactionsLoaded = (loadedTransactions: Transaction[]) => {
+  console.log('💳 HomeView: Transacciones recibidas:', loadedTransactions.length);
+  transactions.value = loadedTransactions;
+};
+
 
 const isAccountModalOpen = ref(false);
 
@@ -73,27 +64,11 @@ const handleSelectAccount = (accountId: number) => {
     ...acc,
     isActive: acc.account_id === accountId
   }));
-  console.log('Cuenta seleccionada:', accountId);
+  console.log('🔄 Cuenta seleccionada:', accountId);
 };
 
 const handleCreateJointAccount = (accountName: string, userEmails: string[]) => {
   console.log('Crear cuenta conjunta:', accountName, userEmails);
-  
-  // TODO: Llamada al backend
-  // const response = await fetch('/api/accounts/joint', {
-  //   method: 'POST',
-  //   headers: {
-  //     'Content-Type': 'application/json',
-  //   },
-  //   body: JSON.stringify({
-  //     name: accountName,
-  //     user_emails: userEmails,
-  //     account_type: 'joint'
-  //   })
-  // });
-  // const newAccountData = await response.json();
-  
-  // Por ahora, simulación local
   const newAccount: AccountUI = {
     account_id: accounts.value.length + 1,
     name: accountName,
@@ -105,9 +80,11 @@ const handleCreateJointAccount = (accountName: string, userEmails: string[]) => 
     creation_date: new Date(),
     isActive: false
   };
-  
   accounts.value.push(newAccount);
-  console.log('Nueva cuenta creada:', newAccount);
+};
+
+const handleEditCard = () => {
+  console.log('Editar tarjeta');
 };
 
 const handleAddObjective = () => {
@@ -118,125 +95,6 @@ const handleTransactionClick = (transactionId: number) => {
   console.log('Transacción clickeada:', transactionId);
 };
 
-const handleLoadMore = () => {
-  console.log('Cargar más transacciones');
-};
-
-const transactions = ref<Transaction[]>([
-  {
-    transaction_id: 1,
-    account_id: 1,
-    user_id: 1,
-    objective_id: 0,
-    category: 'Alimentación',
-    amount: 54.15,
-    transaction_type: 'expense',
-    concept: 'Mercadona',
-    transaction_date: new Date(2026, 0, 2),
-    isRecurring: true,
-    frequency: 'weekly',
-    end_date: null,
-    split_type: 'none',
-    last_execution_date: new Date(2026, 0, 2)
-  },
-  {
-    transaction_id: 2,
-    account_id: 1,
-    user_id: 1,
-    objective_id: 0,
-    category: 'Alimentación',
-    amount: 54.15,
-    transaction_type: 'expense',
-    concept: 'Mercadona',
-    transaction_date: new Date(2026, 0, 2),
-    isRecurring: true,
-    frequency: 'weekly',
-    end_date: null,
-    split_type: 'none',
-    last_execution_date: null
-  },
-  {
-    transaction_id: 3,
-    account_id: 1,
-    user_id: 1,
-    objective_id: 0,
-    category: 'Salario',
-    amount: 2500.00,
-    transaction_type: 'income',
-    concept: 'Nómina mensual',
-    transaction_date: new Date(2026, 0, 1),
-    isRecurring: true,
-    frequency: 'monthly',
-    end_date: null,
-    split_type: 'none',
-    last_execution_date: new Date(2026, 0, 1)
-  },
-  {
-    transaction_id: 4,
-    account_id: 1,
-    user_id: 1,
-    objective_id: 0,
-    category: 'Transporte',
-    amount: 45.50,
-    transaction_type: 'expense',
-    concept: 'Gasolina',
-    transaction_date: new Date(2026, 0, 1),
-    isRecurring: false,
-    frequency: null,
-    end_date: null,
-    split_type: 'none',
-    last_execution_date: null
-  },
-  {
-    transaction_id: 5,
-    account_id: 1,
-    user_id: 1,
-    objective_id: 0,
-    category: 'Hogar',
-    amount: 850.00,
-    transaction_type: 'expense',
-    concept: 'Alquiler Enero',
-    transaction_date: new Date(2026, 0, 1),
-    isRecurring: true,
-    frequency: 'monthly',
-    end_date: null,
-    split_type: 'none',
-    last_execution_date: new Date(2026, 0, 1)
-  },
-  {
-    transaction_id: 6,
-    account_id: 1,
-    user_id: 1,
-    objective_id: 0,
-    category: 'Suscripciones',
-    amount: 14.99,
-    transaction_type: 'expense',
-    concept: 'Netflix',
-    transaction_date: new Date(2026, 0, 3),
-    isRecurring: true,
-    frequency: 'monthly',
-    end_date: null,
-    split_type: 'none',
-    last_execution_date: new Date(2026, 0, 3)
-  },
-  {
-    transaction_id: 7,
-    account_id: 1,
-    user_id: 1,
-    objective_id: 0,
-    category: 'Ocio',
-    amount: 32.40,
-    transaction_type: 'expense',
-    concept: 'Cine y Palomitas',
-    transaction_date: new Date(2026, 0, 4),
-    isRecurring: false,
-    frequency: null,
-    end_date: null,
-    split_type: 'none',
-    last_execution_date: null
-  },  
-]);
-  
 const activeMenuItem = ref('inicio');
 
 const handleNavigate = (itemId: string) => {
@@ -246,7 +104,6 @@ const handleNavigate = (itemId: string) => {
 </script>
 
 <template>
-  <!-- Menú lateral (solo visible en tablet+) -->
   <AsideNav 
     :active-item="activeMenuItem"
     :accounts="accounts"
@@ -254,7 +111,6 @@ const handleNavigate = (itemId: string) => {
     @avatar-click="handleAvatarClick"
   />
   
-  <!-- TopNav (solo visible en móvil) -->
   <TopNav 
     :accounts="accounts" 
     @avatar-click="handleAvatarClick"
@@ -262,44 +118,41 @@ const handleNavigate = (itemId: string) => {
   />
   
   <main class="home-content">
-    <!-- Card siempre arriba ocupando todo el ancho -->
     <div class="home-content__header">
-      <CardComponent />
+      <CardComponent 
+        :account-id="activeAccount?.account_id"
+        :user-name="currentUser.name"
+        @edit="handleEditCard"
+      />
     </div>
 
-    <!-- Grid de 2 columnas en tablet+ -->
     <div class="home-content__grid">
-      <!-- Columna izquierda: Balance + Objetivos -->
       <div class="home-content__left">
+        <!-- ✅ Ya no pasamos todayDayOfWeek -->
         <BalanceComponent
-          :weekly-budget="200"
-          :current-week-expenses="80"
-          :today-day-of-week="currentDay"
+          :account-id="activeAccount?.account_id"
         />
         
         <ObjectivesComponent
-          :objectives="objectives"
           @add-objective="handleAddObjective"
+          @objectives-loaded="handleObjectivesLoaded"
         />
       </div>
 
-      <!-- Columna derecha: Historial de Transacciones -->
       <div class="home-content__right">
         <TransactionsHistoryComponent
-          :transactions="transactions"
+          :account-id="activeAccount?.account_id"
           :initial-limit="5"
           :load-more-increment="10"
           @transaction-click="handleTransactionClick"
-          @load-more="handleLoadMore"
+          @transactions-loaded="handleTransactionsLoaded"
         />
       </div>
     </div>
   </main>
   
-  <!-- BottomNav (solo visible en móvil) -->
   <BottomNav class="mobile-only" />
 
-  <!-- Modal de cambio de cuenta -->
   <AccountSwitcherModal
     :is-open="isAccountModalOpen"
     :accounts="accounts"
@@ -316,9 +169,8 @@ const handleNavigate = (itemId: string) => {
   padding-top: 100px;
   padding-bottom: 80px;
 
-  // Tablet y Desktop
   @media (min-width: 768px) {
-    margin-left: 240px; // Ancho del AsideNav
+    margin-left: 240px;
     padding: 40px 20px;
     max-width: calc(100vw - 240px);
   }
@@ -333,7 +185,6 @@ const handleNavigate = (itemId: string) => {
     flex-direction: column;
     gap: 0;
 
-    // Layout de 2 columnas en tablet+
     @media (min-width: 768px) {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -354,7 +205,6 @@ const handleNavigate = (itemId: string) => {
   }
 }
 
-// Ocultar en tablet+
 .mobile-only {
   @media (min-width: 768px) {
     display: none;

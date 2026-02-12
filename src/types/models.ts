@@ -4,7 +4,7 @@ export interface User {
   user_id: number;
   name: string;
   email: string;
-  password?: string; // Opcional en frontend
+  password?: string;
 }
 
 export interface Account {
@@ -24,7 +24,40 @@ export interface UserAccount {
   joined_at: Date | string;
 }
 
-// Tipo extendido SOLO para la UI (con estado local)
+// Tipo extendido SOLO para la UI
 export interface AccountUI extends Account {
-  isActive: boolean; // Solo para saber cuál está seleccionada en el frontend
+  isActive: boolean;
+}
+
+// Tipos de transacciones
+export type TransactionType = 'expense' | 'income' | 'saving'; // ✅ Añadido 'saving'
+export type FrequencyType = 'weekly' | 'monthly' | 'yearly' | null;
+export type SplitType = 'none' | 'equal' | 'percentage' | 'custom';
+
+export interface Transaction {
+  transaction_id: number;
+  account_id: number;
+  user_id: number;
+  objective_id: number; // 0 si no está asociado a objetivo
+  category: string;
+  amount: number;
+  transaction_type: TransactionType;
+  concept: string;
+  transaction_date: Date | string;
+  isRecurring: boolean;
+  frequency: FrequencyType;
+  end_date: Date | string | null;
+  split_type: SplitType;
+  last_execution_date: Date | string | null;
+}
+
+// Objetivo
+export interface Objective {
+  objective_id: number;
+  account_id: number;
+  name: string;
+  target_amount: number;
+  current_save: number;
+  deadline: Date | string;
+  objective_picture_url: string;
 }
