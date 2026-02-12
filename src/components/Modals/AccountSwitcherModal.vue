@@ -1,5 +1,6 @@
 <template>
   <Teleport to="body">
+    <!-- Modal de selección de cuenta -->
     <Transition name="modal">
       <div v-if="isOpen" class="modal-overlay" @click="handleClose">
         <Transition name="slide">
@@ -49,15 +50,25 @@
       </div>
     </Transition>
   </Teleport>
+
+  <!-- Modal de crear cuenta conjunta -->
+  <CreateJointAccountModal
+    :is-open="isJointAccountModalOpen"
+    :current-user="currentUser"
+    @close="handleCloseJointAccountModal"
+    @create-account="handleCreateJointAccount"
+  />
 </template>
 
 <script setup lang="ts">
-import { watch } from 'vue';
-import type { AccountUI } from '@/types/models';
+import { ref, watch } from 'vue';
+import type { AccountUI, User } from '@/types/models';
+import CreateJointAccountModal from './CreateJointAccountModal.vue';
 
 interface Props {
   isOpen: boolean;
   accounts: AccountUI[];
+  currentUser: User;
 }
 
 const props = defineProps<Props>();
@@ -65,8 +76,10 @@ const props = defineProps<Props>();
 const emit = defineEmits<{
   close: [];
   selectAccount: [accountId: number];
-  addAccount: [];
+  createJointAccount: [accountName: string, userEmails: string[]];
 }>();
+
+const isJointAccountModalOpen = ref(false);
 
 const handleClose = () => {
   emit('close');
@@ -78,7 +91,16 @@ const handleSelectAccount = (accountId: number) => {
 };
 
 const handleAddAccount = () => {
-  emit('addAccount');
+  isJointAccountModalOpen.value = true;
+};
+
+const handleCloseJointAccountModal = () => {
+  isJointAccountModalOpen.value = false;
+};
+
+const handleCreateJointAccount = (accountName: string, userEmails: string[]) => {
+  emit('createJointAccount', accountName, userEmails);
+  isJointAccountModalOpen.value = false;
   handleClose();
 };
 

@@ -21,10 +21,10 @@
 
 <script setup lang="ts">
 import { ref, type Component } from 'vue';
-import IconHome from './icons/HomeIcon.vue';
-import IconPlus from './icons/PlusIcon.vue';
-import IconSquare from './icons/CalculatorIcon.vue';
-import IconUser from './icons/UserIcon.vue';
+import IconHome from '../icons/HomeIcon.vue';
+import IconPlus from '../icons/PlusIcon.vue';
+import IconSquare from '../icons/CalculatorIcon.vue';
+import IconUser from '../icons/UserIcon.vue';
 
 interface NavItem {
   id: string;

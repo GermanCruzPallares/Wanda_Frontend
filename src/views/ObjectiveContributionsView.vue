@@ -37,9 +37,10 @@
     <AccountSwitcherModal
       :is-open="isAccountModalOpen"
       :accounts="accounts"
+      :current-user="currentUser"
       @close="handleCloseModal"
       @select-account="handleSelectAccount"
-      @add-account="handleAddAccount"
+      @create-joint-account="handleCreateJointAccount"
     />
   </div>
 </template>
@@ -47,13 +48,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import HeaderNav from '@/components/HeaderNav.vue';
+import HeaderNav from '@/components/Navs/HeaderNav.vue';
 import ContributionHistory from '@/components/HomeApp/ContributionHistory.vue';
-import BottomNav from '@/components/BottomNav.vue';
-import AsideNav from '@/components/AsideNav.vue';
-import AccountSwitcherModal from '@/components/AccountSwitcherModal.vue';
-import type { Objective, Contribution } from '@/components//HomeApp/ContributionHistory.vue';
-import type { Account } from '@/components/AsideNav.vue';
+import BottomNav from '@/components/Navs/BottomNav.vue';
+import AsideNav from '@/components/Navs/AsideNav.vue';
+import AccountSwitcherModal from '@/components/Modals/AccountSwitcherModal.vue';
+import type { Objective, Contribution } from '@/components/HomeApp/ContributionHistory.vue';
+import type { AccountUI, User } from '@/types/models';
 
 const router = useRouter();
 const route = useRoute();
@@ -71,14 +72,26 @@ const initialObjectiveId = computed(() => {
 // Estado del menú
 const activeMenuItem = ref('libro');
 
+// Usuario actual (debería venir del sistema de autenticación)
+const currentUser = ref<User>({
+  user_id: 1,
+  name: 'Clara',
+  email: 'clara@wandaapp.com'
+});
+
 // Estado de cuentas
-const accounts = ref<Account[]>([
+const accounts = ref<AccountUI[]>([
   {
-    id: '1',
+    account_id: 1,
     name: 'Clara',
-    avatar: 'https://i.pravatar.cc/150?img=5',
+    account_type: 'personal',
+    amount: 13789.37,
+    weekly_budget: 200,
+    monthly_budget: 2000,
+    account_picture_url: 'https://i.pravatar.cc/150?img=5',
+    creation_date: new Date(),
     isActive: true
-  },
+  }
 ]);
 
 const isAccountModalOpen = ref(false);
@@ -191,16 +204,32 @@ const handleCloseModal = () => {
   isAccountModalOpen.value = false;
 };
 
-const handleSelectAccount = (accountId: string) => {
+const handleSelectAccount = (accountId: number) => {
   accounts.value = accounts.value.map(acc => ({
     ...acc,
-    isActive: acc.id === accountId
+    isActive: acc.account_id === accountId
   }));
   console.log('Cuenta seleccionada:', accountId);
 };
 
-const handleAddAccount = () => {
-  console.log('Añadir nueva cuenta');
+const handleCreateJointAccount = (accountName: string, userEmails: string[]) => {
+  console.log('Crear cuenta conjunta:', accountName, userEmails);
+  
+  // Por ahora, simulación local
+  const newAccount: AccountUI = {
+    account_id: accounts.value.length + 1,
+    name: accountName,
+    account_type: 'joint',
+    amount: 0,
+    weekly_budget: 0,
+    monthly_budget: 0,
+    account_picture_url: `https://i.pravatar.cc/150?img=${accounts.value.length + 1}`,
+    creation_date: new Date(),
+    isActive: false
+  };
+  
+  accounts.value.push(newAccount);
+  console.log('Nueva cuenta creada:', newAccount);
 };
 
 // Debug al montar
