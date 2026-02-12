@@ -34,20 +34,6 @@ const activeAccount = computed(() => {
   return accounts.value.find(acc => acc.isActive);
 });
 
-const objectives = ref<any[]>([]);
-const transactions = ref<Transaction[]>([]);
-
-// Handlers
-const handleObjectivesLoaded = (loadedObjectives: any[]) => {
-  console.log('🎯 HomeView: Objetivos recibidos:', loadedObjectives);
-  objectives.value = loadedObjectives;
-};
-
-const handleTransactionsLoaded = (loadedTransactions: Transaction[]) => {
-  console.log('💳 HomeView: Transacciones recibidas:', loadedTransactions.length);
-  transactions.value = loadedTransactions;
-};
-
 
 const isAccountModalOpen = ref(false);
 
@@ -128,14 +114,13 @@ const handleNavigate = (itemId: string) => {
 
     <div class="home-content__grid">
       <div class="home-content__left">
-        <!-- ✅ Ya no pasamos todayDayOfWeek -->
+  
         <BalanceComponent
           :account-id="activeAccount?.account_id"
         />
         
         <ObjectivesComponent
           @add-objective="handleAddObjective"
-          @objectives-loaded="handleObjectivesLoaded"
         />
       </div>
 
@@ -145,7 +130,6 @@ const handleNavigate = (itemId: string) => {
           :initial-limit="5"
           :load-more-increment="10"
           @transaction-click="handleTransactionClick"
-          @transactions-loaded="handleTransactionsLoaded"
         />
       </div>
     </div>

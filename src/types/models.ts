@@ -30,9 +30,9 @@ export interface AccountUI extends Account {
 }
 
 // Tipos de transacciones
-export type TransactionType = 'expense' | 'income' | 'saving'; // ✅ Añadido 'saving'
+export type TransactionType = 'expense' | 'income' | 'saving'; 
 export type FrequencyType = 'weekly' | 'monthly' | 'yearly' | null;
-export type SplitType = 'none' | 'equal' | 'percentage' | 'custom';
+export type SplitType = null | 'individual' | 'contribution' | 'divided';
 
 export interface Transaction {
   transaction_id: number;
@@ -42,7 +42,7 @@ export interface Transaction {
   category: string;
   amount: number;
   transaction_type: TransactionType;
-  concept: string;
+  concept: string | null;
   transaction_date: Date | string;
   isRecurring: boolean;
   frequency: FrequencyType;

@@ -1,144 +1,288 @@
 <template>
-  <div class="contribution-history">
-  <div class="contribution-history">
-    <div class="filter-section">
-      <select v-model="selectedObjectiveId" class="objective-filter">
-        <option :value="null">Todos los objetivos</option>
-        <option 
-          v-for="objective in objectives" 
-          :key="objective.objective_id"
-          :value="objective.objective_id"
+  <div class="savings-history">
+    <!-- Estado de carga -->
+    <div v-if="isLoading" class="loading-state">
+      <p>Cargando aportaciones...</p>
+    </div>
+
+    <template v-else>
+      <div class="filter-section">
+        <select v-model="selectedObjectiveId" class="objective-filter">
+          <option :value="null">Todos los objetivos</option>
+          <option 
+            v-for="objective in objectives" 
+            :key="objective.objective_id"
+            :value="objective.objective_id"
+          >
+            {{ objective.name }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Lista de aportaciones -->
+      <div class="savings-list">
+        <div
+          v-for="transaction in filteredSavings"
+          :key="transaction.transaction_id"
+          class="saving-item"
+          @click="handleSavingClick(transaction.transaction_id)"
         >
-          {{ objective.name }}
-        </option>
-      </select>
-    </div>
-    </div>
+          <!-- Icono del objetivo -->
+          <div class="saving-item__icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+            </svg>
+          </div>
 
-    <!-- Lista de aportaciones -->
-    <div class="contributions-list">
-      <div
-        v-for="contribution in filteredContributions"
-        :key="contribution.id"
-        class="contribution-item"
-        @click="handleContributionClick(contribution.id)"
-      >
-        <!-- Icono del objetivo -->
-        <div class="contribution-item__icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-          </svg>
+          <div class="saving-item__info">
+            <h4 class="saving-item__title">{{ getObjectiveName(transaction.objective_id) }}</h4>
+            <!-- ✅ Solo mostrar la fecha, sin descripción innecesaria -->
+            <p class="saving-item__date">{{ formatDate(transaction.transaction_date) }}</p>
+          </div>
+
+          <div class="saving-item__right">
+            <span class="saving-item__amount">
+              +{{ formatAmount(transaction.amount) }}
+            </span>
+            
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="saving-item__arrow">
+              <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
         </div>
 
-        <div class="contribution-item__info">
-          <h4 class="contribution-item__title">{{ contribution.objective_name }}</h4>
-          <p class="contribution-item__date">{{ formatDate(contribution.date) }}</p>
-        </div>
-
-        <div class="contribution-item__right">
-          <span class="contribution-item__amount">
-            +{{ formatAmount(contribution.amount) }}
-          </span>
-          
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="contribution-item__arrow">
-            <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Mensaje si no hay aportaciones -->
+        <div v-if="filteredSavings.length === 0" class="empty-state">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" stroke="currentColor" stroke-width="2" opacity="0.3"/>
           </svg>
+          <p>No hay aportaciones registradas</p>
         </div>
       </div>
-
-      <!-- Mensaje si no hay aportaciones -->
-      <div v-if="filteredContributions.length === 0" class="empty-state">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-          <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" stroke="currentColor" stroke-width="2" opacity="0.3"/>
-        </svg>
-        <p>No hay aportaciones registradas</p>
-      </div>
-    </div>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
-
-import { ref, computed, watch } from 'vue';
-
-// Tipos
-export interface Objective {
-  objective_id: number;
-  account_id: number;
-  name: string;
-  target_amount: number;
-  current_save: number;
-  deadline: Date | string;
-  objective_picture_url: string;
-}
-
-export interface Contribution {
-  id: number;
-  objective_id: number;
-  objective_name: string;
-  amount: number;
-  date: Date | string;
-}
+import { ref, computed, watch, onMounted } from 'vue';
+import type { Transaction, Objective } from '@/types/models';
 
 interface Props {
+  accountId?: number;
   objectives: Objective[];
-  contributions: Contribution[];
   initialSelectedObjective?: number | null;
 }
+
 const props = withDefaults(defineProps<Props>(), {
   initialSelectedObjective: null
 });
 
-// Parsear fecha
-const parseDate = (date: Date | string): Date => {
-  return typeof date === 'string' ? new Date(date) : date;
-};
-
-
 const emit = defineEmits<{
-  contributionClick: [contributionId: number];
+  savingClick: [transactionId: number];
+  transactionsLoaded: [transactions: Transaction[]];
 }>();
 
-
-
-// Filtro seleccionado (inicializar con el valor de la prop)
+// ✅ Estado local
+const transactions = ref<Transaction[]>([]);
+const isLoading = ref(false);
 const selectedObjectiveId = ref<number | null>(props.initialSelectedObjective);
 
-// Cuando cambie la prop, actualizar el filtro
+// ✅ Simular llamada GET /api/accounts/{accountId}/transactions?type=saving
+const fetchSavings = async (accountId: number) => {
+  console.log(`📡 ObjectiveSavingsHistory: Simulando llamada GET /api/accounts/${accountId}/transactions?type=saving`);
+  
+  isLoading.value = true;
+  
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  // ✅ ACTUALIZADO: Las aportaciones a objetivos son SIEMPRE manuales y puntuales
+  const mockSavings: Transaction[] = [
+    {
+      transaction_id: 101,
+      account_id: accountId,
+      user_id: 1,
+      objective_id: 1,
+      category: 'Ahorro',
+      amount: 500,
+      transaction_type: 'saving',
+      concept: null,
+      transaction_date: new Date(2026, 0, 10, 10, 30),
+      isRecurring: false, 
+      frequency: null,    
+      end_date: null,
+      split_type: null,
+      last_execution_date: null 
+    },
+    {
+      transaction_id: 102,
+      account_id: accountId,
+      user_id: 1,
+      objective_id: 2,
+      category: 'Ahorro',
+      amount: 500,
+      transaction_type: 'saving',
+      concept: null,
+      transaction_date: new Date(2026, 0, 10, 15, 45),
+      isRecurring: false,
+      frequency: null,
+      end_date: null,
+      split_type: null,
+      last_execution_date: null
+    },
+    {
+      transaction_id: 103,
+      account_id: accountId,
+      user_id: 1,
+      objective_id: 1,
+      category: 'Ahorro',
+      amount: 500,
+      transaction_type: 'saving',
+      concept: null,
+      transaction_date: new Date(2026, 0, 9, 9, 20),
+      isRecurring: false,
+      frequency: null,
+      end_date: null,
+      split_type: null,
+      last_execution_date: null
+    },
+    {
+      transaction_id: 104,
+      account_id: accountId,
+      user_id: 1,
+      objective_id: 1,
+      category: 'Ahorro',
+      amount: 500,
+      transaction_type: 'saving',
+      concept: null,
+      transaction_date: new Date(2026, 0, 8, 14, 10),
+      isRecurring: false,
+      frequency: null,
+      end_date: null,
+      split_type: null,
+      last_execution_date: null
+    },
+    {
+      transaction_id: 105,
+      account_id: accountId,
+      user_id: 1,
+      objective_id: 2,
+      category: 'Ahorro',
+      amount: 1000,
+      transaction_type: 'saving',
+      concept: null,
+      transaction_date: new Date(2026, 0, 5, 16, 20),
+      isRecurring: false,
+      frequency: null,
+      end_date: null,
+      split_type: null,
+      last_execution_date: null
+    },
+    {
+      transaction_id: 106,
+      account_id: accountId,
+      user_id: 1,
+      objective_id: 1,
+      category: 'Ahorro',
+      amount: 300,
+      transaction_type: 'saving',
+      concept: null,
+      transaction_date: new Date(2026, 0, 3, 12, 0),
+      isRecurring: false,
+      frequency: null,
+      end_date: null,
+      split_type: null,
+      last_execution_date: null
+    },
+    {
+      transaction_id: 107,
+      account_id: accountId,
+      user_id: 1,
+      objective_id: 2,
+      category: 'Ahorro',
+      amount: 750,
+      transaction_type: 'saving',
+      concept: null,
+      transaction_date: new Date(2025, 11, 28, 9, 45),
+      isRecurring: false,
+      frequency: null,
+      end_date: null,
+      split_type: null,
+      last_execution_date: null
+    },
+    {
+      transaction_id: 108,
+      account_id: accountId,
+      user_id: 1,
+      objective_id: 1,
+      category: 'Ahorro',
+      amount: 600,
+      transaction_type: 'saving',
+      concept: null,
+      transaction_date: new Date(2025, 11, 25, 14, 30),
+      isRecurring: false,
+      frequency: null,
+      end_date: null,
+      split_type: null,
+      last_execution_date: null
+    }
+  ];
+  
+  transactions.value = mockSavings;
+  isLoading.value = false;
+  
+  emit('transactionsLoaded', mockSavings);
+  
+  console.log('✅ ObjectiveSavingsHistory: Aportaciones cargadas:', mockSavings.length);
+};
+
+onMounted(() => {
+  if (props.accountId) {
+    fetchSavings(props.accountId);
+  }
+});
+
+watch(() => props.accountId, (newAccountId) => {
+  if (newAccountId) {
+    console.log('🔄 ObjectiveSavingsHistory: Cuenta cambiada, recargando...');
+    fetchSavings(newAccountId);
+  }
+});
+
 watch(() => props.initialSelectedObjective, (newValue) => {
   selectedObjectiveId.value = newValue;
 });
 
+const parseDate = (date: Date | string): Date => {
+  return typeof date === 'string' ? new Date(date) : date;
+};
 
-// Aportaciones filtradas
-const filteredContributions = computed(() => {
-  let result = props.contributions;
+const getObjectiveName = (objectiveId: number): string => {
+  const objective = props.objectives.find(o => o.objective_id === objectiveId);
+  return objective?.name || 'Objetivo desconocido';
+};
 
-  // Filtrar por objetivo si hay uno seleccionado
+const filteredSavings = computed(() => {
+  let result = transactions.value;
+
   if (selectedObjectiveId.value !== null) {
-    result = result.filter(c => c.objective_id === selectedObjectiveId.value);
+    result = result.filter(t => t.objective_id === selectedObjectiveId.value);
   }
 
-  // Ordenar por fecha (más reciente primero)
-  return result.sort((a, b) => parseDate(b.date).getTime() - parseDate(a.date).getTime());
+  return result.sort((a, b) => parseDate(b.transaction_date).getTime() - parseDate(a.transaction_date).getTime());
 });
 
-
-
-
-// Formatear fecha
 const formatDate = (date: Date | string): string => {
   const d = parseDate(date);
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
-  const contributionDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const transactionDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
 
   const time = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
 
-  if (contributionDay.getTime() === today.getTime()) {
+  if (transactionDay.getTime() === today.getTime()) {
     return `Hoy, ${time}`;
-  } else if (contributionDay.getTime() === yesterday.getTime()) {
+  } else if (transactionDay.getTime() === yesterday.getTime()) {
     return `Ayer, ${time}`;
   } else {
     const day = d.getDate().toString().padStart(2, '0');
@@ -148,21 +292,31 @@ const formatDate = (date: Date | string): string => {
   }
 };
 
-// Formatear cantidad
 const formatAmount = (amount: number): string => {
   return `${amount.toFixed(2).replace('.', ',')} €`;
 };
 
-const handleContributionClick = (contributionId: number) => {
-  emit('contributionClick', contributionId);
+const handleSavingClick = (transactionId: number) => {
+  emit('savingClick', transactionId);
 };
 </script>
 
 <style scoped lang="scss">
 @import '@/styles/base/variables.scss';
 
-.contribution-history {
+.savings-history {
   padding: 0 16px;
+}
+
+.loading-state {
+  padding: 60px 20px;
+  text-align: center;
+  
+  p {
+    margin: 0;
+    font-size: 14px;
+    color: $color-text-gray;
+  }
 }
 
 .filter-section {
@@ -196,13 +350,13 @@ const handleContributionClick = (contributionId: number) => {
   }
 }
 
-.contributions-list {
+.savings-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.contribution-item {
+.saving-item {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -247,7 +401,7 @@ const handleContributionClick = (contributionId: number) => {
   }
 
   &__date {
-    font-size: 12px;
+    font-size: 13px;
     color: $color-text-gray;
     margin: 0;
   }
@@ -260,8 +414,8 @@ const handleContributionClick = (contributionId: number) => {
   }
 
   &__amount {
-    font-size: 15px;
-    font-weight: 600;
+    font-size: 16px;
+    font-weight: 700;
     color: $color-success;
     white-space: nowrap;
   }

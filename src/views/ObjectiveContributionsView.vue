@@ -22,11 +22,12 @@
 
     <!-- Contenido principal -->
     <main class="contributions-content">
-      <ContributionHistory
+      <ObjectiveSavingsHistory
+        :account-id="activeAccount?.account_id"
         :objectives="objectives"
-        :contributions="contributions"
         :initial-selected-objective="initialObjectiveId"
-        @contribution-click="handleContributionClick"
+        @saving-click="handleSavingClick"
+        @transactions-loaded="handleTransactionsLoaded"
       />
     </main>
 
@@ -49,12 +50,11 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import HeaderNav from '@/components/Navs/HeaderNav.vue';
-import ContributionHistory from '@/components/HomeApp/ContributionHistory.vue';
+import ObjectiveSavingsHistory from '@/components/HomeApp/ContributionHistory.vue';
 import BottomNav from '@/components/Navs/BottomNav.vue';
 import AsideNav from '@/components/Navs/AsideNav.vue';
 import AccountSwitcherModal from '@/components/Modals/AccountSwitcherModal.vue';
-import type { Objective, Contribution } from '@/components/HomeApp/ContributionHistory.vue';
-import type { AccountUI, User } from '@/types/models';
+import type { Transaction, Objective, AccountUI, User } from '@/types/models';
 
 const router = useRouter();
 const route = useRoute();
@@ -94,89 +94,52 @@ const accounts = ref<AccountUI[]>([
   }
 ]);
 
+const activeAccount = computed(() => {
+  return accounts.value.find(acc => acc.isActive);
+});
+
 const isAccountModalOpen = ref(false);
 
-// Datos de ejemplo de objetivos
-const objectives = ref<Objective[]>([
-  {
-    objective_id: 1,
-    account_id: 1,
-    name: 'Coche nuevo',
-    target_amount: 10000,
-    current_save: 7500,
-    deadline: new Date(2026, 11, 31),
-    objective_picture_url: ''
-  },
-  {
-    objective_id: 2,
-    account_id: 1,
-    name: 'Entrada Casa',
-    target_amount: 50000,
-    current_save: 15000,
-    deadline: new Date(2028, 5, 30),
-    objective_picture_url: ''
-  }
-]);
+// ✅ Objetivos vacíos - vendrán del hijo
+const objectives = ref<Objective[]>([]);
 
-// Datos de ejemplo de aportaciones
-const contributions = ref<Contribution[]>([
-  {
-    id: 1,
-    objective_id: 1,
-    objective_name: 'Coche nuevo',
-    amount: 500,
-    date: new Date(2026, 0, 10, 10, 30)
-  },
-  {
-    id: 2,
-    objective_id: 2,
-    objective_name: 'Entrada Casa',
-    amount: 500,
-    date: new Date(2026, 0, 10, 15, 45)
-  },
-  {
-    id: 3,
-    objective_id: 1,
-    objective_name: 'Coche nuevo',
-    amount: 500,
-    date: new Date(2026, 0, 9, 9, 20)
-  },
-  {
-    id: 4,
-    objective_id: 1,
-    objective_name: 'Coche nuevo',
-    amount: 500,
-    date: new Date(2026, 0, 8, 14, 10)
-  },
-  {
-    id: 5,
-    objective_id: 2,
-    objective_name: 'Entrada Casa',
-    amount: 1000,
-    date: new Date(2026, 0, 5, 16, 20)
-  },
-  {
-    id: 6,
-    objective_id: 1,
-    objective_name: 'Coche nuevo',
-    amount: 300,
-    date: new Date(2026, 0, 3, 12, 0)
-  },
-  {
-    id: 7,
-    objective_id: 2,
-    objective_name: 'Entrada Casa',
-    amount: 750,
-    date: new Date(2025, 11, 28, 9, 45)
-  },
-  {
-    id: 8,
-    objective_id: 1,
-    objective_name: 'Coche nuevo',
-    amount: 600,
-    date: new Date(2025, 11, 25, 14, 30)
-  }
-]);
+// ✅ Transacciones vacías - vendrán del hijo
+const transactions = ref<Transaction[]>([]);
+
+// ✅ Handler para recibir transacciones
+const handleTransactionsLoaded = (loadedTransactions: Transaction[]) => {
+  console.log('💰 ObjectiveContributionsView: Aportaciones recibidas:', loadedTransactions.length);
+  transactions.value = loadedTransactions;
+};
+
+// Cargar objetivos (podrían venir de ObjectivesComponent o hacerse aquí)
+const fetchObjectives = async () => {
+  console.log('📡 Cargando objetivos...');
+  
+  // Simulación - en producción: GET /api/accounts/{accountId}/objectives
+  const mockObjectives: Objective[] = [
+    {
+      objective_id: 1,
+      account_id: 1,
+      name: 'Coche nuevo',
+      target_amount: 10000,
+      current_save: 7500,
+      deadline: new Date(2026, 11, 31),
+      objective_picture_url: ''
+    },
+    {
+      objective_id: 2,
+      account_id: 1,
+      name: 'Entrada Casa',
+      target_amount: 50000,
+      current_save: 15000,
+      deadline: new Date(2028, 5, 30),
+      objective_picture_url: ''
+    }
+  ];
+  
+  objectives.value = mockObjectives;
+};
 
 // Funciones de navegación
 const handleBack = () => {
@@ -191,8 +154,9 @@ const handleNavigate = (itemId: string) => {
   }
 };
 
-const handleContributionClick = (contributionId: number) => {
-  console.log('Aportación clickeada:', contributionId);
+const handleSavingClick = (transactionId: number) => {
+  console.log('Aportación clickeada:', transactionId);
+  // Aquí podrías abrir un modal con detalles de la transacción
 };
 
 // Funciones de cuenta
@@ -215,7 +179,6 @@ const handleSelectAccount = (accountId: number) => {
 const handleCreateJointAccount = (accountName: string, userEmails: string[]) => {
   console.log('Crear cuenta conjunta:', accountName, userEmails);
   
-  // Por ahora, simulación local
   const newAccount: AccountUI = {
     account_id: accounts.value.length + 1,
     name: accountName,
@@ -232,10 +195,11 @@ const handleCreateJointAccount = (accountName: string, userEmails: string[]) => 
   console.log('Nueva cuenta creada:', newAccount);
 };
 
-// Debug al montar
+// Cargar al montar
 onMounted(() => {
   console.log('Route params:', route.params);
   console.log('Initial objective ID:', initialObjectiveId.value);
+  fetchObjectives();
 });
 </script>
 
