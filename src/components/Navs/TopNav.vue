@@ -17,7 +17,7 @@
         class="avatar-image"
         @click="handleAvatarClick"
       />
-    </div>
+    </div> 
   </div>
 </template>
 

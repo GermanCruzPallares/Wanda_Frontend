@@ -1,8 +1,54 @@
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
 import type { Account, User } from '@/types/models';
+import { useRouter } from 'vue-router';
 
 export const useUserStore = defineStore('user', () => {
+
+  const router = useRouter();
+
+
+  const token = ref(localStorage.getItem('token') || '');
+
+  const login = async (email: string, password: string) => {
+    try {
+      const url = 'http://localhost:7085/api/Auth/login';
+      console.log(`🔵 [LOGIN] Enviando petición a: ${url}`);
+
+      const response = await fetch(url, { 
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }), // Coincide con LoginDto.cs
+      });
+
+      console.log(`🔵 [LOGIN] Estado de respuesta HTTP: ${response.status} ${response.statusText}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`🔴 [LOGIN] Error del servidor:`, errorText);
+        throw new Error(`Error ${response.status}: ${errorText}`);
+      }
+
+      const data = await response.json();
+      
+      // Guardar token y usuario
+      token.value = data.token;
+      localStorage.setItem('token', data.token); // Persistencia
+      localStorage.setItem('userId', data.userId);
+      
+      // Redirigir al home
+      router.push('/home');
+      return true;
+
+    } catch (error) {
+      console.error(error);
+      alert('Error al iniciar sesión: ' + error);
+      return false;
+    }
+  };
+
   // ✅ Estado: Map para cachear cuentas de cada usuario
   const accountsByUser = ref<Map<number, Account[]>>(new Map());
 
@@ -110,6 +156,8 @@ export const useUserStore = defineStore('user', () => {
   };
 
   return {
+    token,
+    login,
     accountsByUser,
     fetchUserAccounts,
     fetchAccountUsers,
