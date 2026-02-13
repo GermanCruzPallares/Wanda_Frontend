@@ -24,10 +24,11 @@
                 type="email"
                 placeholder="Email de usuario"
                 class="email-input"
+                :disabled="isValidatingEmail"
                 @keyup.enter="handleAddUser"
               />
               <button 
-                v-if="isValidEmail(newUserEmail)"
+                v-if="isValidEmail(newUserEmail) && !isValidatingEmail"
                 class="input-check"
                 @click="handleAddUser"
               >
@@ -35,11 +36,19 @@
                   <path d="M20 6L9 17l-5-5" stroke="#4CAF50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </button>
+              <!-- Spinner de validación -->
+              <div v-if="isValidatingEmail" class="input-spinner">
+                <div class="spinner"></div>
+              </div>
             </div>
 
             <!-- Botón añadir usuario -->
-            <button class="add-user-btn" @click="handleAddUser">
-              Añadir usuario +
+            <button 
+              class="add-user-btn" 
+              :disabled="isValidatingEmail"
+              @click="handleAddUser"
+            >
+              {{ isValidatingEmail ? 'Validando...' : 'Añadir usuario +' }}
             </button>
           </section>
 
@@ -148,6 +157,7 @@ const emit = defineEmits<{
 const newUserEmail = ref('');
 const accountName = ref('');
 const addedUsers = ref<User[]>([]);
+const isValidatingEmail = ref(false);
 
 // Validar email
 const isValidEmail = (email: string): boolean => {
@@ -155,7 +165,41 @@ const isValidEmail = (email: string): boolean => {
   return emailRegex.test(email);
 };
 
-// Verificar si se puede crear la cuenta (mínimo 2 usuarios: el actual + 1 más)
+// ✅ Validar si el usuario existe en el backend
+const validateUserExists = async (email: string): Promise<User | null> => {
+  console.log(`📡 CreateJointAccountModal: Validando usuario GET /api/users/check?email=${email}`);
+  
+  isValidatingEmail.value = true;
+  
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  // TODO: En producción, esto sería:
+  // const response = await fetch(`/api/users/check?email=${encodeURIComponent(email)}`);
+  // if (!response.ok) return null;
+  // const data = await response.json();
+  // return data.user;
+  
+  // Simulación: Solo acepta emails que contengan ciertos dominios
+  const mockUsers: Record<string, User> = {
+    'juan@wandaapp.com': { user_id: 2, name: 'Juan', email: 'juan@wandaapp.com' },
+    'ana@wandaapp.com': { user_id: 3, name: 'Ana', email: 'ana@wandaapp.com' },
+    'pedro@wandaapp.com': { user_id: 4, name: 'Pedro', email: 'pedro@wandaapp.com' }
+  };
+  
+  isValidatingEmail.value = false;
+  
+  const user = mockUsers[email.toLowerCase()];
+  
+  if (user) {
+    console.log('✅ Usuario encontrado:', user);
+    return user;
+  } else {
+    console.log('❌ Usuario no encontrado');
+    return null;
+  }
+};
+
+// Verificar si se puede crear la cuenta
 const canCreateAccount = computed(() => {
   return addedUsers.value.length >= 1 && accountName.value.trim().length > 0;
 });
@@ -171,8 +215,8 @@ const validationMessage = computed(() => {
   return '';
 });
 
-// Añadir usuario
-const handleAddUser = () => {
+// ✅ Añadir usuario con validación en backend
+const handleAddUser = async () => {
   if (!isValidEmail(newUserEmail.value)) {
     alert('Por favor, introduce un email válido');
     return;
@@ -195,16 +239,15 @@ const handleAddUser = () => {
     return;
   }
 
-  // TODO: Aquí deberías hacer una llamada al backend para verificar que el usuario existe
-  // Por ahora simulamos la creación del usuario
-  const userName = newUserEmail.value.split('@')[0] || 'Usuario';
-  const newUser: User = {
-    user_id: 0, // El backend asignará el ID real
-    email: newUserEmail.value,
-    name: userName.charAt(0).toUpperCase() + userName.slice(1)
-  };
+  // ✅ Validar que el usuario existe en el backend
+  const user = await validateUserExists(newUserEmail.value);
+  
+  if (!user) {
+    alert('Este usuario no está registrado en Wanda');
+    return;
+  }
 
-  addedUsers.value.push(newUser);
+  addedUsers.value.push(user);
   newUserEmail.value = '';
 };
 
@@ -338,13 +381,22 @@ const getAvatarUrl = (email: string): string => {
   &::placeholder {
     color: $color-text-gray;
   }
+
+  &:disabled {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+  }
 }
 
-.input-check {
+.input-check,
+.input-spinner {
   position: absolute;
   right: 12px;
   top: 50%;
   transform: translateY(-50%);
+}
+
+.input-check {
   background: none;
   border: none;
   cursor: pointer;
@@ -352,6 +404,19 @@ const getAvatarUrl = (email: string): string => {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e0e0e0;
+  border-top-color: $color-text;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .add-user-btn {
@@ -366,12 +431,17 @@ const getAvatarUrl = (email: string): string => {
   cursor: pointer;
   transition: opacity $transition-speed $transition-ease;
 
-  &:hover {
+  &:hover:not(:disabled) {
     opacity: 0.9;
   }
 
-  &:active {
+  &:active:not(:disabled) {
     opacity: 0.8;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 }
 

@@ -137,9 +137,11 @@ const handleNavigate = (itemId: string) => {
   
   <BottomNav class="mobile-only" />
 
+<!-- ✅ ACTUALIZADO: Pasar userId y activeAccountId -->
   <AccountSwitcherModal
     :is-open="isAccountModalOpen"
-    :accounts="accounts"
+    :user-id="currentUser.user_id"
+    :active-account-id="activeAccount?.account_id"
     :current-user="currentUser"
     @close="handleCloseModal"
     @select-account="handleSelectAccount"
