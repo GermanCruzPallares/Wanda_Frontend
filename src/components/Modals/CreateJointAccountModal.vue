@@ -140,6 +140,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { useUserStore } from '@/stores/UserStore';
 import type { User } from '@/types/models';
 
 interface Props {
@@ -154,6 +155,9 @@ const emit = defineEmits<{
   createAccount: [accountName: string, userEmails: string[]];
 }>();
 
+// ✅ Usar el store de Pinia
+const userStore = useUserStore();
+
 const newUserEmail = ref('');
 const accountName = ref('');
 const addedUsers = ref<User[]>([]);
@@ -163,40 +167,6 @@ const isValidatingEmail = ref(false);
 const isValidEmail = (email: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
-};
-
-// ✅ Validar si el usuario existe en el backend
-const validateUserExists = async (email: string): Promise<User | null> => {
-  console.log(`📡 CreateJointAccountModal: Validando usuario GET /api/users/check?email=${email}`);
-  
-  isValidatingEmail.value = true;
-  
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  // TODO: En producción, esto sería:
-  // const response = await fetch(`/api/users/check?email=${encodeURIComponent(email)}`);
-  // if (!response.ok) return null;
-  // const data = await response.json();
-  // return data.user;
-  
-  // Simulación: Solo acepta emails que contengan ciertos dominios
-  const mockUsers: Record<string, User> = {
-    'juan@wandaapp.com': { user_id: 2, name: 'Juan', email: 'juan@wandaapp.com' },
-    'ana@wandaapp.com': { user_id: 3, name: 'Ana', email: 'ana@wandaapp.com' },
-    'pedro@wandaapp.com': { user_id: 4, name: 'Pedro', email: 'pedro@wandaapp.com' }
-  };
-  
-  isValidatingEmail.value = false;
-  
-  const user = mockUsers[email.toLowerCase()];
-  
-  if (user) {
-    console.log('✅ Usuario encontrado:', user);
-    return user;
-  } else {
-    console.log('❌ Usuario no encontrado');
-    return null;
-  }
 };
 
 // Verificar si se puede crear la cuenta
@@ -215,7 +185,7 @@ const validationMessage = computed(() => {
   return '';
 });
 
-// ✅ Añadir usuario con validación en backend
+// ✅ Añadir usuario con validación desde el store
 const handleAddUser = async () => {
   if (!isValidEmail(newUserEmail.value)) {
     alert('Por favor, introduce un email válido');
@@ -239,8 +209,10 @@ const handleAddUser = async () => {
     return;
   }
 
-  // ✅ Validar que el usuario existe en el backend
-  const user = await validateUserExists(newUserEmail.value);
+  // ✅ Validar usando el store
+  isValidatingEmail.value = true;
+  const user = await userStore.checkUserExists(newUserEmail.value);
+  isValidatingEmail.value = false;
   
   if (!user) {
     alert('Este usuario no está registrado en Wanda');

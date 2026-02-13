@@ -1,79 +1,18 @@
-<template>
-  <Teleport to="body">
-    <!-- Modal de selección de cuenta -->
-    <Transition name="modal">
-      <div v-if="isOpen" class="modal-overlay" @click="handleClose">
-        <Transition name="slide">
-          <div v-if="isOpen" class="modal-drawer" @click.stop>
-            <!-- Estado de carga -->
-            <div v-if="isLoading" class="loading-state">
-              <p>Cargando cuentas...</p>
-            </div>
-
-            <!-- Lista de cuentas -->
-            <div v-else class="accounts-list">
-              <div
-                v-for="account in accounts"
-                :key="account.account_id"
-                class="account-item"
-                :class="{ 'account-item--active': account.account_id === activeAccountId }"
-                @click="handleSelectAccount(account.account_id)"
-              >
-                <div class="account-item__wrapper">
-                  <div class="account-item__avatar">
-                    <img :src="account.account_picture_url" :alt="account.name" />
-                  </div>
-                  <div class="account-item__info">
-                    <span class="account-item__name">{{ account.name }}</span>
-                  </div>
-                  <div v-if="account.account_id === activeAccountId" class="account-item__check">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                      <circle cx="12" cy="12" r="10" fill="#4285F4"/>
-                      <path d="M7 12l3 3 7-7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Separador -->
-              <div class="separator"></div>
-
-              <!-- Botón añadir cuenta -->
-              <button class="add-account-btn" @click="handleAddAccount">
-                <div class="add-account-btn__wrapper">
-                  <div class="add-account-btn__icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-                    </svg>
-                  </div>
-                  <span class="add-account-btn__text">Añadir cuenta conjunta</span>
-                </div>
-              </button>
-            </div>
-          </div>
-        </Transition>
-      </div>
-    </Transition>
-  </Teleport>
-
-  <!-- Modal de crear cuenta conjunta -->
-  <CreateJointAccountModal
-    :is-open="isJointAccountModalOpen"
-    :current-user="currentUser"
-    @close="handleCloseJointAccountModal"
-    @create-account="handleCreateJointAccount"
-  />
-</template>
-
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch, computed } from 'vue';
+import { useUserStore } from '@/stores/UserStore';
 import type { Account, User } from '@/types/models';
 import CreateJointAccountModal from './CreateJointAccountModal.vue';
 
+// ✅ Interfaz extendida para incluir usuarios
+interface AccountWithUsers extends Account {
+  users?: User[];
+}
+
 interface Props {
   isOpen: boolean;
-  userId?: number; // ✅ Solo necesita el userId para cargar sus cuentas
-  activeAccountId?: number; // ✅ Para saber cuál está activa
+  userId?: number;
+  activeAccountId?: number;
   currentUser: User;
 }
 
@@ -82,71 +21,62 @@ const props = defineProps<Props>();
 const emit = defineEmits<{
   close: [];
   selectAccount: [accountId: number];
-  accountsLoaded: [accounts: Account[]]; // ✅ Emite las cuentas al padre
+  accountsLoaded: [accounts: Account[]];
   createJointAccount: [accountName: string, userEmails: string[]];
 }>();
 
-// ✅ Estado local
+// ✅ Usar el store de Pinia
+const userStore = useUserStore();
+
+// Estado local
 const accounts = ref<Account[]>([]);
+const accountsWithUsers = ref<AccountWithUsers[]>([]);
 const isLoading = ref(false);
 const isJointAccountModalOpen = ref(false);
 
-// ✅ Simular llamada GET /api/users/{userId}/accounts
-const fetchUserAccounts = async (userId: number) => {
-  console.log(`📡 AccountSwitcherModal: Simulando llamada GET /api/users/${userId}/accounts`);
-  
+// ✅ Cargar cuentas desde el store
+const loadUserAccounts = async (userId: number) => {
   isLoading.value = true;
   
-  await new Promise(resolve => setTimeout(resolve, 400));
+  // Obtener cuentas del usuario
+  accounts.value = await userStore.fetchUserAccounts(userId);
   
-  // TODO: En producción, esto sería:
-  // const response = await fetch(`/api/users/${userId}/accounts`);
-  // const data = await response.json();
+  // Para cada cuenta conjunta, obtener sus usuarios
+  await loadUsersForAccounts(accounts.value);
   
-  // Simulación: Cuentas del usuario
-  const mockUserAccounts: Record<number, Account[]> = {
-    1: [
-      {
-        account_id: 1,
-        name: 'Clara',
-        account_type: 'personal',
-        amount: 13789.37,
-        weekly_budget: 200,
-        monthly_budget: 2000,
-        account_picture_url: 'https://i.pravatar.cc/150?img=5',
-        creation_date: new Date()
-      },
-      {
-        account_id: 2,
-        name: 'Casa Clara y Juan',
-        account_type: 'joint',
-        amount: 5200.00,
-        weekly_budget: 300,
-        monthly_budget: 1500,
-        account_picture_url: 'https://i.pravatar.cc/150?img=8',
-        creation_date: new Date()
-      }
-    ]
-  };
+  emit('accountsLoaded', accounts.value);
   
-  const userAccounts = mockUserAccounts[userId] || [];
-  
-  accounts.value = userAccounts;
   isLoading.value = false;
-  
-  // ✅ Emitir las cuentas al padre
-  emit('accountsLoaded', userAccounts);
-  
-  console.log('✅ AccountSwitcherModal: Cuentas cargadas:', userAccounts.length);
 };
 
-// ✅ Cargar cuando se abre el modal
+// ✅ Cargar usuarios para cuentas conjuntas
+const loadUsersForAccounts = async (accountsList: Account[]) => {
+  const accountsWithUsersData: AccountWithUsers[] = [];
+
+  for (const account of accountsList) {
+    if (account.account_type === 'joint') {
+      const users = await userStore.fetchAccountUsers(account.account_id);
+      accountsWithUsersData.push({
+        ...account,
+        users,
+        
+      });
+    } else {
+      accountsWithUsersData.push(account);
+    }
+  }
+
+  accountsWithUsers.value = accountsWithUsersData;
+};
+
+
+
+// Cargar cuando se abre el modal
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen && props.userId && accounts.value.length === 0) {
-    fetchUserAccounts(props.userId);
+    loadUserAccounts(props.userId);
   }
   
-  // Bloquear/desbloquear scroll
   if (isOpen) {
     document.body.style.overflow = 'hidden';
   } else {
@@ -154,10 +84,10 @@ watch(() => props.isOpen, (isOpen) => {
   }
 });
 
-// ✅ Recargar si cambia el userId
+// Recargar si cambia el userId
 watch(() => props.userId, (newUserId) => {
   if (newUserId && props.isOpen) {
-    fetchUserAccounts(newUserId);
+    loadUserAccounts(newUserId);
   }
 });
 
@@ -185,8 +115,87 @@ const handleCreateJointAccount = (accountName: string, userEmails: string[]) => 
 };
 </script>
 
+<template>
+
+  <Teleport to="body">
+    <Transition name="modal">
+      <div v-if="isOpen" class="modal-overlay" @click="handleClose">
+        <Transition name="slide">
+          <div v-if="isOpen" class="modal-drawer" @click.stop>
+            <div v-if="isLoading" class="loading-state">
+              <p>Cargando cuentas...</p>
+            </div>
+
+            <div v-else class="accounts-list">
+              <div
+                v-for="account in accountsWithUsers"
+                :key="account.account_id"
+                class="account-item"
+                :class="{ 'account-item--active': account.account_id === activeAccountId }"
+                @click="handleSelectAccount(account.account_id)"
+              >
+                <div class="account-item__wrapper">
+                  <div class="account-item__avatar">
+                    <img :src="account.account_picture_url" :alt="account.name" />
+                  </div>
+                  <div class="account-item__info">
+                    <span class="account-item__name">{{ account.name }}</span>
+                  </div>
+                  <div v-if="account.account_id === activeAccountId" class="account-item__check">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" fill="#4285F4"/>
+                      <path d="M7 12l3 3 7-7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <div class="separator"></div>
+
+              <button class="add-account-btn" @click="handleAddAccount">
+                <div class="add-account-btn__wrapper">
+                  <div class="add-account-btn__icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                    </svg>
+                  </div>
+                  <span class="add-account-btn__text">Añadir cuenta conjunta</span>
+                </div>
+              </button>
+            </div>
+          </div>
+        </Transition>
+      </div>
+    </Transition>
+  </Teleport>
+
+  <CreateJointAccountModal
+    :is-open="isJointAccountModalOpen"
+    :current-user="currentUser"
+    @close="handleCloseJointAccountModal"
+    @create-account="handleCreateJointAccount"
+  />
+</template>
 <style scoped lang="scss">
 @import '@/styles/base/variables.scss';
+
+
+.account-item {
+  &__info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__users {
+    font-size: 12px;
+    color: $color-text-gray;
+    display: block;
+  }
+}
+
 
 .modal-overlay {
   position: fixed;
