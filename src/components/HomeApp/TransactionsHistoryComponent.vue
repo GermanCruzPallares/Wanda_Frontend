@@ -69,7 +69,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
+import { useTransactionStore } from '@/stores/TransactionStore';
 import SectionTitle from '@/components/SectionTitle.vue';
 import { getCategoryIcon } from '@/components/icons/CategoryIcons';
 import type { Transaction } from '@/types/models';
@@ -81,203 +82,53 @@ interface TransactionGroup {
 }
 
 interface Props {
-  accountId?: number; // ✅ Recibe el ID de la cuenta activa
+  accountId?: number;
   initialLimit?: number;
   loadMoreIncrement?: number;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  accountId: 1,
   initialLimit: 5,
   loadMoreIncrement: 10
 });
 
 const emit = defineEmits<{
   transactionClick: [transactionId: number];
-  transactionsLoaded: [transactions: Transaction[]]; // ✅ Nuevo evento
+  transactionsLoaded: [transactions: Transaction[]];
 }>();
 
-// ✅ Los datos ahora están en el HIJO
+// ✅ Usar el store de Pinia
+const transactionStore = useTransactionStore();
+
+// Estado local
 const transactions = ref<Transaction[]>([]);
 const isLoading = ref(false);
 const displayLimit = ref(props.initialLimit);
 
-// ✅ Simular llamada a la API
-const fetchTransactions = async () => {
-  console.log(`📡 TransactionsHistoryComponent: Simulando llamada GET /api/transactions?account_id=${props.accountId}`);
-  
+// ✅ Cargar transacciones desde el store
+const loadTransactions = async (accountId: number) => {
   isLoading.value = true;
   
-  // Simular delay de red
-  await new Promise(resolve => setTimeout(resolve, 500));
+  transactions.value = await transactionStore.fetchTransactions(accountId);
   
-  // TODO: En producción, esto sería:
-  // const response = await fetch(`/api/transactions?account_id=${props.accountId}`);
-  // const data = await response.json();
+  emit('transactionsLoaded', transactions.value);
   
-
-  
-  // Por ahora, datos simulados
-  const mockData: Transaction[] = [
-    {
-      transaction_id: 1,
-      account_id: props.accountId,
-      user_id: 1,
-      objective_id: 0,
-      category: 'Alimentación',
-      amount: 54.15,
-      transaction_type: 'expense',
-      concept: 'Mercadona',
-      transaction_date: new Date(2026, 0, 2),
-      isRecurring: true,
-      frequency: 'weekly',
-      end_date: null,
-      split_type: 'none',
-      last_execution_date: new Date(2026, 0, 2)
-    },
-    {
-      transaction_id: 2,
-      account_id: props.accountId,
-      user_id: 1,
-      objective_id: 0,
-      category: 'Alimentación',
-      amount: 54.15,
-      transaction_type: 'expense',
-      concept: 'Mercadona',
-      transaction_date: new Date(2026, 0, 2),
-      isRecurring: true,
-      frequency: 'weekly',
-      end_date: null,
-      split_type: 'none',
-      last_execution_date: null
-    },
-    {
-      transaction_id: 3,
-      account_id: props.accountId,
-      user_id: 1,
-      objective_id: 0,
-      category: 'Salario',
-      amount: 2500.00,
-      transaction_type: 'income',
-      concept: 'Nómina',
-      transaction_date: new Date(2026, 0, 1),
-      isRecurring: true,
-      frequency: 'monthly',
-      end_date: null,
-      split_type: 'none',
-      last_execution_date: new Date(2026, 0, 1)
-    },
-    {
-      transaction_id: 4,
-      account_id: props.accountId,
-      user_id: 1,
-      objective_id: 0,
-      category: 'Transporte',
-      amount: 45.50,
-      transaction_type: 'expense',
-      concept: 'Gasolina',
-      transaction_date: new Date(2026, 0, 1),
-      isRecurring: false,
-      frequency: null,
-      end_date: null,
-      split_type: 'none',
-      last_execution_date: null
-    },
-    {
-      transaction_id: 5,
-      account_id: props.accountId,
-      user_id: 1,
-      objective_id: 0,
-      category: 'Hogar',
-      amount: 850.00,
-      transaction_type: 'expense',
-      concept: 'Alquiler Enero',
-      transaction_date: new Date(2026, 0, 1),
-      isRecurring: true,
-      frequency: 'monthly',
-      end_date: null,
-      split_type: 'none',
-      last_execution_date: new Date(2026, 0, 1)
-    },
-    {
-      transaction_id: 6,
-      account_id: props.accountId,
-      user_id: 1,
-      objective_id: 0,
-      category: 'Suscripciones',
-      amount: 14.99,
-      transaction_type: 'expense',
-      concept: 'Netflix',
-      transaction_date: new Date(2026, 0, 3),
-      isRecurring: true,
-      frequency: 'monthly',
-      end_date: null,
-      split_type: 'none',
-      last_execution_date: new Date(2026, 0, 3)
-    },
-    {
-      transaction_id: 7,
-      account_id: props.accountId,
-      user_id: 1,
-      objective_id: 0,
-      category: 'Ocio',
-      amount: 32.40,
-      transaction_type: 'expense',
-      concept: 'Cine y Palomitas',
-      transaction_date: new Date(2026, 0, 4),
-      isRecurring: false,
-      frequency: null,
-      end_date: null,
-      split_type: 'none',
-      last_execution_date: null
-    },
-    // ✅ Añadidas transacciones de tipo 'saving'
-    {
-      transaction_id: 101,
-      account_id: props.accountId,
-      user_id: 1,
-      objective_id: 1,
-      category: 'Ahorro',
-      amount: 500,
-      transaction_type: 'saving',
-      concept: 'Aportación coche',
-      transaction_date: new Date(2026, 0, 10, 10, 30),
-      isRecurring: true,
-      frequency: 'monthly',
-      end_date: null,
-      split_type: 'none',
-      last_execution_date: new Date(2026, 0, 10, 10, 30)
-    },
-    {
-      transaction_id: 102,
-      account_id: props.accountId,
-      user_id: 1,
-      objective_id: 2,
-      category: 'Ahorro',
-      amount: 500,
-      transaction_type: 'saving',
-      concept: 'Aportación casa',
-      transaction_date: new Date(2026, 0, 10, 15, 45),
-      isRecurring: true,
-      frequency: 'monthly',
-      end_date: null,
-      split_type: 'none',
-      last_execution_date: new Date(2026, 0, 10, 15, 45)
-    }
-  ];
-  
-  transactions.value = mockData;
   isLoading.value = false;
-  
-  // ✅ Emitir los datos al padre
-  emit('transactionsLoaded', mockData);
-  
-  console.log('✅ TransactionsHistoryComponent: Transacciones cargadas:', mockData.length);
 };
 
-
+// Cargar cuando se monta
 onMounted(() => {
-  fetchTransactions();
+  if (props.accountId) {
+    loadTransactions(props.accountId);
+  }
+});
+
+// Recargar cuando cambia la cuenta
+watch(() => props.accountId, (newAccountId) => {
+  if (newAccountId) {
+    displayLimit.value = props.initialLimit;
+    loadTransactions(newAccountId);
+  }
 });
 
 // Convertir fecha string a Date si es necesario
@@ -287,7 +138,7 @@ const parseDate = (date: Date | string): Date => {
 
 // Obtener la descripción completa (concepto + frecuencia si aplica)
 const getDescription = (transaction: Transaction): string => {
-  let description = transaction.concept;
+  let description = transaction.concept || '';
   
   if (transaction.isRecurring && transaction.frequency) {
     const frequencyLabels = {
@@ -297,7 +148,7 @@ const getDescription = (transaction: Transaction): string => {
     };
     
     const frequencyLabel = frequencyLabels[transaction.frequency];
-    description += ` - ${frequencyLabel}`;
+    description += description ? ` - ${frequencyLabel}` : frequencyLabel;
   }
   
   return description;
@@ -380,7 +231,6 @@ const formatAmount = (amount: number, type: string): string => {
 
 const loadMore = () => {
   displayLimit.value += props.loadMoreIncrement;
-  console.log('📈 Mostrando más transacciones. Límite actual:', displayLimit.value);
 };
 
 const handleTransactionClick = (transactionId: number) => {
@@ -389,6 +239,7 @@ const handleTransactionClick = (transactionId: number) => {
 </script>
 
 <style scoped lang="scss">
+/* Estilos sin cambios */
 @import '@/styles/base/variables.scss';
 
 .transactions-history {

@@ -8,7 +8,7 @@ import TransactionsHistoryComponent from '@/components/HomeApp/TransactionsHisto
 import TopNav from '@/components/Navs/TopNav.vue';
 import AsideNav from '@/components/Navs/AsideNav.vue';
 import AccountSwitcherModal from '@/components/Modals/AccountSwitcherModal.vue';
-import type { AccountUI, User, Transaction, Account } from '@/types/models';
+import type { AccountUI, User, Transaction, Account, Objective } from '@/types/models';
 
 const currentUser = ref<User>({
   user_id: 1,
@@ -26,13 +26,31 @@ const accounts = ref<AccountUI[]>([
     monthly_budget: 2000,
     account_picture_url: 'https://i.pravatar.cc/150?img=5',
     creation_date: new Date(),
-    isActive: true
+    isActive: true // ✅ IMPORTANTE: Debe estar en true
   }
 ]);
 
+// ✅ Cuenta activa (computed)
 const activeAccount = computed(() => {
-  return accounts.value.find(acc => acc.isActive);
+  const active = accounts.value.find(acc => acc.isActive);
+  console.log('🔍 HomeView: activeAccount =', active); // DEBUG
+  return active;
 });
+
+const objectives = ref<Objective[]>([]);
+const transactions = ref<Transaction[]>([]);
+
+// Handlers
+const handleObjectivesLoaded = (loadedObjectives: Objective[]) => {
+  console.log('🎯 HomeView: Objetivos recibidos:', loadedObjectives);
+  objectives.value = loadedObjectives;
+};
+
+const handleTransactionsLoaded = (loadedTransactions: Transaction[]) => {
+  console.log('💳 HomeView: Transacciones recibidas:', loadedTransactions.length);
+  transactions.value = loadedTransactions;
+};
+
 
 
 const isAccountModalOpen = ref(false);
@@ -87,17 +105,27 @@ const handleNavigate = (itemId: string) => {
   activeMenuItem.value = itemId;
   console.log('Navegando a:', itemId);
 };
+
+
+
+const handleAccountsLoaded = (loadedAccounts: Account[]) => {
+  console.log('🏦 HomeView: Cuentas recibidas desde AccountSwitcherModal:', loadedAccounts.length);
+  accounts.value = loadedAccounts.map(acc => ({
+    ...acc,
+    isActive: acc.account_id === activeAccount.value?.account_id
+  } as AccountUI));
+};
 </script>
 
 <template>
-<AsideNav 
+  <AsideNav 
     :active-item="activeMenuItem"
     :account-id="activeAccount?.account_id"
     @navigate="handleNavigate"
     @avatar-click="handleAvatarClick"
   />
   
-<TopNav 
+  <TopNav 
     :account-id="activeAccount?.account_id"
     @avatar-click="handleAvatarClick"
     class="mobile-only"
@@ -114,13 +142,15 @@ const handleNavigate = (itemId: string) => {
 
     <div class="home-content__grid">
       <div class="home-content__left">
-  
         <BalanceComponent
           :account-id="activeAccount?.account_id"
         />
         
+       
         <ObjectivesComponent
+          :account-id="activeAccount?.account_id"
           @add-objective="handleAddObjective"
+          @objectives-loaded="handleObjectivesLoaded"
         />
       </div>
 
@@ -130,6 +160,7 @@ const handleNavigate = (itemId: string) => {
           :initial-limit="5"
           :load-more-increment="10"
           @transaction-click="handleTransactionClick"
+          @transactions-loaded="handleTransactionsLoaded"
         />
       </div>
     </div>
@@ -137,7 +168,6 @@ const handleNavigate = (itemId: string) => {
   
   <BottomNav class="mobile-only" />
 
-<!-- ✅ ACTUALIZADO: Pasar userId y activeAccountId -->
   <AccountSwitcherModal
     :is-open="isAccountModalOpen"
     :user-id="currentUser.user_id"
@@ -145,6 +175,7 @@ const handleNavigate = (itemId: string) => {
     :current-user="currentUser"
     @close="handleCloseModal"
     @select-account="handleSelectAccount"
+    @accounts-loaded="handleAccountsLoaded"
     @create-joint-account="handleCreateJointAccount"
   />
 </template>

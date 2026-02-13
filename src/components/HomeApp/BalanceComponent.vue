@@ -120,6 +120,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue';
+import { useAccountStore } from '@/stores/AccountStore';
 import SectionTitle from '@/components/SectionTitle.vue';
 import InfoModal from './InfoModal.vue';
 import type { Account } from '@/types/models';
@@ -134,16 +135,19 @@ const emit = defineEmits<{
   accountLoaded: [account: Account];
 }>();
 
-// ✅ Lógica del día de la semana DENTRO del componente
+// ✅ Usar el store de Pinia
+const accountStore = useAccountStore();
+
+// Lógica del día de la semana
 const getCurrentDayOfWeek = (): number => {
   const today = new Date();
   const day = today.getDay(); 
-  return day === 0 ? 6 : day - 1; // 0=Domingo → 6, 1=Lunes → 0, etc.
+  return day === 0 ? 6 : day - 1;
 };
 
 const todayDayOfWeek = ref(getCurrentDayOfWeek());
 
-// ✅ Estado local
+// Estado local
 const account = ref<Account | null>(null);
 const currentWeekExpenses = ref(0);
 const isLoading = ref(false);
@@ -157,86 +161,34 @@ const closeInfoModal = () => {
   isInfoModalOpen.value = false;
 };
 
-// ✅ Simular llamada GET /api/accounts/{id}
-const fetchAccount = async (accountId: number) => {
-  console.log(`📡 BalanceComponent: Simulando llamada GET /api/accounts/${accountId}`);
-  
+// ✅ Cargar cuenta desde el store
+const loadAccount = async (accountId: number) => {
   isLoading.value = true;
   
-  // Simular delay de red
-  await new Promise(resolve => setTimeout(resolve, 400));
+  // Llamar al store
+  account.value = await accountStore.fetchAccount(accountId);
   
-  // TODO: En producción, esto sería:
-  // const response = await fetch(`/api/accounts/${accountId}`);
-  // const accountData = await response.json();
-  
-  // Por ahora, datos simulados
-  const mockAccounts: Record<number, Account> = {
-    1: {
-      account_id: 1,
-      name: 'Clara',
-      account_type: 'personal',
-      amount: 13789.37,
-      weekly_budget: 200,
-      monthly_budget: 2000,
-      account_picture_url: 'https://i.pravatar.cc/150?img=5',
-      creation_date: new Date()
-    },
-    2: {
-      account_id: 2,
-      name: 'Cuenta Conjunta',
-      account_type: 'joint',
-      amount: 25600.50,
-      weekly_budget: 300,
-      monthly_budget: 3500,
-      account_picture_url: 'https://i.pravatar.cc/150?img=2',
-      creation_date: new Date()
-    },
-    3: {
-      account_id: 3,
-      name: 'Ahorros',
-      account_type: 'personal',
-      amount: 8430.20,
-      weekly_budget: 150,
-      monthly_budget: 1500,
-      account_picture_url: 'https://i.pravatar.cc/150?img=3',
-      creation_date: new Date()
-    }
-  };
-  
-  const accountData = mockAccounts[accountId];
-  
-  if (accountData) {
-    account.value = accountData;
+  if (account.value) {
+    // Calcular gastos de la semana (simulado por ahora)
+    currentWeekExpenses.value = Math.round(account.value.weekly_budget * 0.4);
     
-    // ✅ Calcular gastos de la semana (en producción vendría del backend o de las transacciones)
-    // Por ahora, simulamos que ha gastado ~40% del presupuesto semanal
-    currentWeekExpenses.value = Math.round(accountData.weekly_budget * 0.4);
-    
-    isLoading.value = false;
-    
-    // ✅ Emitir la cuenta completa al padre
-    emit('accountLoaded', accountData);
-    
-    console.log('✅ BalanceComponent: Cuenta cargada:', accountData);
-  } else {
-    console.error('❌ BalanceComponent: Cuenta no encontrada');
-    isLoading.value = false;
+    emit('accountLoaded', account.value);
   }
+  
+  isLoading.value = false;
 };
 
-// ✅ Cargar cuando se monta el componente
+// Cargar cuando se monta
 onMounted(() => {
   if (props.accountId) {
-    fetchAccount(props.accountId);
+    loadAccount(props.accountId);
   }
 });
 
-// ✅ Recargar cuando cambia la cuenta
+// Recargar cuando cambia la cuenta
 watch(() => props.accountId, (newAccountId) => {
   if (newAccountId) {
-    console.log('🔄 BalanceComponent: Cuenta cambiada, recargando...');
-    fetchAccount(newAccountId);
+    loadAccount(newAccountId);
   }
 });
 
@@ -250,7 +202,6 @@ const spentPercentage = computed(() => {
   return Math.round((currentWeekExpenses.value / weeklyBudget.value) * 100);
 });
 
-// ✅ CORREGIDO: Usar todayDayOfWeek.value en lugar de props.todayDayOfWeek
 const weekProgress = computed(() => {
   return Math.round(((todayDayOfWeek.value + 1) / 7) * 100);
 });
@@ -259,11 +210,6 @@ const difference = computed(() => {
   return spentPercentage.value - weekProgress.value;
 });
 
-const isOnTrack = computed(() => {
-  return difference.value <= 0;
-});
-
-// Estado del gasto (verde, amarillo, rojo)
 const spendingStatus = computed(() => {
   const diff = difference.value;
   
@@ -326,7 +272,6 @@ const messageSubtitle = computed(() => {
   }
 });
 
-// ✅ CORREGIDO: Usar todayDayOfWeek.value
 const isToday = (day: string): boolean => {
   const dayIndex = weekDays.indexOf(day);
   return dayIndex === todayDayOfWeek.value;
