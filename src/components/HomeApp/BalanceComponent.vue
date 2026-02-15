@@ -121,6 +121,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue';
 import { useAccountStore } from '@/stores/AccountStore';
+import { useTransactionStore } from '@/stores/TransactionStore';
 import SectionTitle from '@/components/SectionTitle.vue';
 import InfoModal from './InfoModal.vue';
 import type { Account } from '@/types/models';
@@ -135,8 +136,9 @@ const emit = defineEmits<{
   accountLoaded: [account: Account];
 }>();
 
-// ✅ Usar el store de Pinia
+// ✅ Usar los stores de Pinia
 const accountStore = useAccountStore();
+const transactionStore = useTransactionStore();
 
 // Lógica del día de la semana
 const getCurrentDayOfWeek = (): number => {
@@ -161,16 +163,47 @@ const closeInfoModal = () => {
   isInfoModalOpen.value = false;
 };
 
+// ✅ NUEVA FUNCIÓN: Calcular gastos reales de la semana actual
+const calculateCurrentWeekExpenses = (accountId: number): number => {
+  const transactions = transactionStore.getTransactionsFromCache(accountId);
+  if (!transactions) return 0;
+  
+  const now = new Date();
+  const currentDay = now.getDay();
+  const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay; // Lunes de esta semana
+  
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + mondayOffset);
+  monday.setHours(0, 0, 0, 0);
+  
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+  
+  // Sumar solo gastos (expenses) de esta semana
+  return transactions
+    .filter(t => {
+      const tDate = new Date(t.transaction_date);
+      return t.transaction_type === 'expense' && 
+             tDate >= monday && 
+             tDate <= sunday;
+    })
+    .reduce((sum, t) => sum + t.amount, 0);
+};
+
 // ✅ Cargar cuenta desde el store
 const loadAccount = async (accountId: number) => {
   isLoading.value = true;
   
-  // Llamar al store
+  // Llamar al store para cargar la cuenta
   account.value = await accountStore.fetchAccount(accountId);
   
   if (account.value) {
-    // Calcular gastos de la semana (simulado por ahora)
-    currentWeekExpenses.value = Math.round(account.value.weekly_budget * 0.4);
+    // ✅ Cargar transacciones para calcular gastos reales
+    await transactionStore.fetchTransactions(accountId);
+    
+    // ✅ Calcular gastos REALES de la semana actual
+    currentWeekExpenses.value = calculateCurrentWeekExpenses(accountId);
     
     emit('accountLoaded', account.value);
   }
@@ -228,7 +261,7 @@ const formattedBudget = computed(() => {
 });
 
 const formattedExpenses = computed(() => {
-  return `${currentWeekExpenses.value}€`;
+  return `${Math.round(currentWeekExpenses.value)}€`;
 });
 
 const formattedDifference = computed(() => {

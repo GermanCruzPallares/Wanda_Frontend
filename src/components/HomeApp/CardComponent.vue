@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import { useAccountStore } from '@/stores/AccountStore';
+import { useTransactionStore } from '@/stores/TransactionStore';
 import type { Account } from '@/types/models';
 
 interface Props {
@@ -18,15 +19,22 @@ const emit = defineEmits<{
 }>();
 
 const accountStore = useAccountStore();
+const transactionStore = useTransactionStore();
+
 const account = ref<Account | null>(null);
 const isLoading = ref(false);
 
 const loadAccount = async (accountId: number) => {
   isLoading.value = true;
+  
+  // Cargar cuenta
   account.value = await accountStore.fetchAccount(accountId);
   
   if (account.value) {
     emit('accountLoaded', account.value);
+    
+    // Cargar transacciones para calcular gastos/ingresos reales
+    await transactionStore.fetchTransactions(accountId);
   }
   
   isLoading.value = false;
@@ -52,14 +60,31 @@ const formattedBalance = computed(() => {
   }).format(account.value.amount);
 });
 
+// ✅ CALCULAR GASTOS REALES DEL MES ACTUAL
 const monthlyExpense = computed(() => {
-  if (!account.value) return 0;
-  return account.value.monthly_budget * 0.6;
+  if (!props.accountId) return 0;
+  
+  const transactions = transactionStore.getTransactionsFromCache(props.accountId);
+  if (!transactions) return 0;
+  
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  
+  // Sumar solo gastos (expenses) del mes actual
+  return transactions
+    .filter(t => {
+      const tDate = new Date(t.transaction_date);
+      return t.transaction_type === 'expense' && 
+             tDate.getMonth() === currentMonth && 
+             tDate.getFullYear() === currentYear;
+    })
+    .reduce((sum, t) => sum + t.amount, 0);
 });
 
-const monthlyIncome = computed(() => {
-  if (!account.value) return 0;
-  return account.value.monthly_budget;
+// ✅ PRESUPUESTO MENSUAL (no ingresos reales)
+const monthlyBudget = computed(() => {
+  return account.value?.monthly_budget || 0;
 });
 
 const formattedMonthlyExpense = computed(() => {
@@ -71,18 +96,18 @@ const formattedMonthlyExpense = computed(() => {
   }).format(monthlyExpense.value);
 });
 
-const formattedMonthlyIncome = computed(() => {
+const formattedMonthlyBudget = computed(() => {
   return new Intl.NumberFormat('es-ES', {
     style: 'currency',
     currency: 'EUR',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(monthlyIncome.value);
+  }).format(monthlyBudget.value);
 });
 
 const expensePercentage = computed(() => {
-  if (monthlyIncome.value === 0) return 0;
-  return Math.min((monthlyExpense.value / monthlyIncome.value) * 100, 100);
+  if (monthlyBudget.value === 0) return 0;
+  return Math.min((monthlyExpense.value / monthlyBudget.value) * 100, 100);
 });
 
 const handleEdit = () => emit('edit');
@@ -110,7 +135,7 @@ const handleEdit = () => emit('edit');
         <div class="stat">
           <div class="stat__labels">
             <div class="stat__label">Gasto mensual</div>
-            <div class="stat__label">Ingreso mensual</div>
+            <div class="stat__label">Presupuesto mensual</div>
           </div>
           <div class="stat__bar stat__bar--expense">
             <div 
@@ -120,7 +145,7 @@ const handleEdit = () => emit('edit');
           </div>
           <div class="stat__amounts">
             <div class="stat__amount stat__amount--expense">{{ formattedMonthlyExpense }}</div>
-            <div class="stat__amount stat__amount--income">{{ formattedMonthlyIncome }}</div>
+            <div class="stat__amount stat__amount--budget">{{ formattedMonthlyBudget }}</div>
           </div>
         </div>
       </div>
@@ -246,8 +271,8 @@ const handleEdit = () => emit('edit');
       color: #F70D0D;
     }
     
-    &--income {
-      color: #4a8659;
+    &--budget {
+      color: #397c36;
     }
   }
 }
