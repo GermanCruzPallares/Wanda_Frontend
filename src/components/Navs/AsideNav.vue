@@ -44,8 +44,9 @@
       :current-user="userStore.currentUser"
       @close="closeAccountSwitcher"
       @select-account="handleSelectAccount"
-      @create-joint-account="handleCreateJointAccount"
+      @create-account="handleCreateJointAccount"
     />
+    <!-- ☝️ CAMBIO: @create-joint-account → @create-account -->
   </aside>
 </template>
 
@@ -115,28 +116,22 @@ const handleSelectAccount = (accountId: number) => {
   closeAccountSwitcher();
 };
 
-const handleCreateJointAccount = async (accountName: string, userEmails: string[]) => {
-  console.log('➕ Creating joint account:', accountName, userEmails);
+// ✅ CORREGIDO: Recibir userIds (números) en lugar de userEmails
+const handleCreateJointAccount = async (accountName: string, userIds: number[]) => {
+  console.log('4️⃣ AsideNav recibió:', accountName, userIds);
   
   try {
-    // Convertir emails a user_ids
-    const userIds: number[] = [];
-    for (const email of userEmails) {
-      const user = await userStore.checkUserExists(email);
-      if (user) {
-        userIds.push(user.user_id);
-      }
-    }
-    
     await accountStore.createJointAccount({
       name: accountName,
-      user_ids: userIds
+      userIds: userIds // ✅ Ya son números
     });
     
     await userStore.refreshAccounts();
     closeAccountSwitcher();
+    
   } catch (error) {
     console.error('❌ Error creando cuenta conjunta:', error);
+    alert('Error al crear la cuenta. Por favor, intenta de nuevo.');
   }
 };
 </script>
