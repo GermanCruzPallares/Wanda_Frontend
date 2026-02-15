@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { useUserStore } from '@/stores/UserStore';
 import BottomNav from '@/components/Navs/BottomNav.vue';
 import BalanceComponent from '@/components/HomeApp/BalanceComponent.vue';
 import CardComponent from '@/components/HomeApp/CardComponent.vue';
@@ -8,40 +10,62 @@ import TransactionsHistoryComponent from '@/components/HomeApp/TransactionsHisto
 import TopNav from '@/components/Navs/TopNav.vue';
 import AsideNav from '@/components/Navs/AsideNav.vue';
 import AccountSwitcherModal from '@/components/Modals/AccountSwitcherModal.vue';
-import type { AccountUI, User, Transaction, Account, Objective } from '@/types/models';
+import type { AccountUI, Transaction, Objective } from '@/types/models';
 
+const router = useRouter();
+const userStore = useUserStore();
 
-const currentUser = ref<User>({
-  user_id: 1,
-  name: 'Clara',
-  email: 'clara@wandaapp.com'
+// ==================== COMPUTED ====================
+
+// Usuario actual desde el store
+const currentUser = computed(() => userStore.currentUser);
+
+// Cuentas con formato AccountUI (agregando isActive)
+const accounts = computed<AccountUI[]>(() => {
+  return userStore.accounts.map(account => ({
+    ...account,
+    isActive: account.account_id === userStore.activeAccountId
+  }));
 });
 
-const accounts = ref<AccountUI[]>([
-  {
-    account_id: 1,
-    name: 'Clara',
-    account_type: 'personal',
-    amount: 13789.37,
-    weekly_budget: 200,
-    monthly_budget: 2000,
-    account_picture_url: 'https://i.pravatar.cc/150?img=5',
-    creation_date: new Date(),
-    isActive: true 
-  }
-]);
-
-// ✅ Cuenta activa (computed)
+// Cuenta activa
 const activeAccount = computed(() => {
   const active = accounts.value.find(acc => acc.isActive);
   console.log('🔍 HomeView: activeAccount =', active); 
   return active;
 });
 
+// ==================== ESTADO LOCAL ====================
+
 const objectives = ref<Objective[]>([]);
 const transactions = ref<Transaction[]>([]);
+const isAccountModalOpen = ref(false);
+const activeMenuItem = ref('inicio');
 
-// Handlers
+// ==================== LIFECYCLE ====================
+
+onMounted(async () => {
+  // Verificar autenticación
+  if (!userStore.isAuthenticated) {
+    console.warn('⚠️ Usuario no autenticado, redirigiendo a login...');
+    router.push('/login');
+    return;
+  }
+
+  // Si el store no tiene datos cargados, cargarlos
+  if (!userStore.currentUser && userStore.userId) {
+    try {
+      console.log('📡 Cargando datos del usuario desde HomeView...');
+      await userStore.loadUserData(userStore.userId);
+    } catch (error) {
+      console.error('❌ Error cargando datos:', error);
+      router.push('/login');
+    }
+  }
+});
+
+// ==================== HANDLERS ====================
+
 const handleObjectivesLoaded = (loadedObjectives: Objective[]) => {
   console.log('🎯 HomeView: Objetivos recibidos:', loadedObjectives);
   objectives.value = loadedObjectives;
@@ -52,10 +76,6 @@ const handleTransactionsLoaded = (loadedTransactions: Transaction[]) => {
   transactions.value = loadedTransactions;
 };
 
-
-
-const isAccountModalOpen = ref(false);
-
 const handleAvatarClick = () => {
   isAccountModalOpen.value = true;
 };
@@ -65,28 +85,11 @@ const handleCloseModal = () => {
 };
 
 const handleSelectAccount = (accountId: number) => {
-  accounts.value = accounts.value.map(acc => ({
-    ...acc,
-    isActive: acc.account_id === accountId
-  }));
   console.log('🔄 Cuenta seleccionada:', accountId);
+  userStore.setActiveAccount(accountId);
 };
 
-const handleCreateJointAccount = (accountName: string, userEmails: string[]) => {
-  console.log('Crear cuenta conjunta:', accountName, userEmails);
-  const newAccount: AccountUI = {
-    account_id: accounts.value.length + 1,
-    name: accountName,
-    account_type: 'joint',
-    amount: 0,
-    weekly_budget: 0,
-    monthly_budget: 0,
-    account_picture_url: `https://i.pravatar.cc/150?img=${accounts.value.length + 1}`,
-    creation_date: new Date(),
-    isActive: false
-  };
-  accounts.value.push(newAccount);
-};
+
 
 const handleEditCard = () => {
   console.log('Editar tarjeta');
@@ -100,16 +103,10 @@ const handleTransactionClick = (transactionId: number) => {
   console.log('Transacción clickeada:', transactionId);
 };
 
-const activeMenuItem = ref('inicio');
-
 const handleNavigate = (itemId: string) => {
   activeMenuItem.value = itemId;
   console.log('Navegando a:', itemId);
 };
-
-
-
-
 </script>
 
 <template>
@@ -130,7 +127,7 @@ const handleNavigate = (itemId: string) => {
     <div class="home-content__header">
       <CardComponent 
         :account-id="activeAccount?.account_id"
-        :user-name="currentUser.name"
+        :user-name="currentUser?.name"
         @edit="handleEditCard"
       />
     </div>
@@ -163,16 +160,6 @@ const handleNavigate = (itemId: string) => {
   
   <BottomNav class="mobile-only" />
 
-  <AccountSwitcherModal
-    :is-open="isAccountModalOpen"
-    :user-id="currentUser.user_id"
-    :active-account-id="activeAccount?.account_id"
-    :current-user="currentUser"
-    @close="handleCloseModal"
-    @select-account="handleSelectAccount"
-
-    @create-joint-account="handleCreateJointAccount"
-  />
 </template>
 
 <style scoped lang="scss">

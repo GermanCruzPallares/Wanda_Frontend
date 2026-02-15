@@ -1,166 +1,251 @@
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { defineStore } from 'pinia';
 import type { Account, User } from '@/types/models';
-import { useRouter } from 'vue-router';
+import { authService } from '@/services/authService';
+import { apiService } from '@/services/apiService';
 
 export const useUserStore = defineStore('user', () => {
+  // ==================== ESTADO ====================
+  
+  // Usuario actual
+  const currentUser = ref<User | null>(null);
+  
+  // Cuentas del usuario actual
+  const accounts = ref<Account[]>([]);
+  
+  // ID de la cuenta activa
+  const activeAccountId = ref<number | null>(null);
+  
+  // Estados de carga
+  const isLoadingUser = ref(false);
+  const isLoadingAccounts = ref(false);
 
-  const router = useRouter();
+  // ==================== COMPUTED ====================
+  
+  // Usuario autenticado?
+  const isAuthenticated = computed(() => authService.isAuthenticated());
+  
+  // Token actual
+  const token = computed(() => authService.getToken());
+  
+  // User ID actual
+  const userId = computed(() => authService.getUserId());
+  
+  // Cuenta activa (objeto completo)
+  const activeAccount = computed(() => {
+    if (!activeAccountId.value) return null;
+    return accounts.value.find(acc => acc.account_id === activeAccountId.value) || null;
+  });
 
-
-  const token = ref(localStorage.getItem('token') || '');
-
-  const login = async (email: string, password: string) => {
+  // ==================== ACTIONS ====================
+  
+  /**
+   * Login del usuario
+   */
+  const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const url = 'https://localhost:7085/api/Auth/login';
-      console.log(`🔵 [LOGIN] Enviando petición a: ${url}`);
+      const userId = await authService.login({ email, password });
+      
+      // Cargar datos del usuario después del login
+      await loadUserData(userId);
+      
+      return true;
+    } catch (error) {
+      console.error('❌ Error en login:', error);
+      throw error;
+    }
+  };
 
-      const response = await fetch(url, { 
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }), // Coincide con LoginDto.cs
-      });
+  /**
+   * Registro de nuevo usuario
+   */
+  const register = async (userData: { 
+    name: string; 
+    email: string; 
+    password: string; 
+  }): Promise<boolean> => {
+    try {
+      const userId = await authService.register(userData);
+      
+      // Cargar datos del usuario después del registro
+      await loadUserData(userId);
+      
+      return true;
+    } catch (error) {
+      console.error('❌ Error en registro:', error);
+      throw error;
+    }
+  };
 
-      console.log(`🔵 [LOGIN] Estado de respuesta HTTP: ${response.status} ${response.statusText}`);
+  /**
+   * Logout del usuario
+   */
+  const logout = () => {
+    authService.logout();
+    
+    // Limpiar estado
+    currentUser.value = null;
+    accounts.value = [];
+    activeAccountId.value = null;
+  };
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`🔴 [LOGIN] Error del servidor:`, errorText);
-        throw new Error(`Error ${response.status}: ${errorText}`);
+  /**
+   * Cargar datos completos del usuario (usuario + cuentas)
+   */
+  const loadUserData = async (userId: number) => {
+    try {
+      isLoadingUser.value = true;
+      isLoadingAccounts.value = true;
+
+      // Cargar usuario
+      console.log(`📡 Cargando datos del usuario ${userId}...`);
+      currentUser.value = await apiService.getUser(userId);
+      console.log('✅ Usuario cargado:', currentUser.value);
+
+      // Cargar cuentas
+      console.log(`📡 Cargando cuentas del usuario ${userId}...`);
+      accounts.value = await apiService.getUserAccounts(userId);
+      console.log('✅ Cuentas cargadas:', accounts.value);
+
+      // Establecer primera cuenta como activa por defecto
+      if (accounts.value.length > 0 && !activeAccountId.value) {
+        const firstAccount = accounts.value[0];
+        if (firstAccount) {
+          activeAccountId.value = firstAccount.account_id;
+          console.log('✅ Cuenta activa establecida:', activeAccountId.value);
+        }
       }
 
-      const data = await response.json();
-      
-      // Guardar token y usuario
-      token.value = data.token;
-      localStorage.setItem('token', data.token); // Persistencia
-      localStorage.setItem('userId', data.userId);
-      
-      // Redirigir al home
-      router.push('/home');
-      return true;
-
     } catch (error) {
-      console.error(error);
-      alert('Error al iniciar sesión: ' + error);
-      return false;
+      console.error('❌ Error cargando datos del usuario:', error);
+      throw error;
+    } finally {
+      isLoadingUser.value = false;
+      isLoadingAccounts.value = false;
     }
   };
 
-  // ✅ Estado: Map para cachear cuentas de cada usuario
-  const accountsByUser = ref<Map<number, Account[]>>(new Map());
-
-  // ✅ Obtener todas las cuentas de un usuario
-  const fetchUserAccounts = async (userId: number): Promise<Account[]> => {
-    // Si ya están en caché, devolverlas
-    if (accountsByUser.value.has(userId)) {
-      return accountsByUser.value.get(userId)!;
-    }
-
-    // TODO: Fetch real cuando tengas backend
-    // const response = await fetch(`/api/users/${userId}/accounts`);
-    // const accounts = await response.json();
-    // accountsByUser.value.set(userId, accounts);
-    // return accounts;
-
-    // Mock temporal
-    await new Promise(resolve => setTimeout(resolve, 400));
+  /**
+   * Cambiar cuenta activa
+   */
+  const setActiveAccount = (accountId: number) => {
+    const account = accounts.value.find(acc => acc.account_id === accountId);
     
-    const mockUserAccounts: Record<number, Account[]> = {
-      1: [
-        {
-          account_id: 1,
-          name: 'Clara',
-          account_type: 'personal',
-          amount: 13789.37,
-          weekly_budget: 200,
-          monthly_budget: 2000,
-          account_picture_url: 'https://i.pravatar.cc/150?img=5',
-          creation_date: new Date()
-        },
-        {
-          account_id: 2,
-          name: 'Casa Clara y Juan',
-          account_type: 'joint',
-          amount: 5200.00,
-          weekly_budget: 300,
-          monthly_budget: 1500,
-          account_picture_url: 'https://i.pravatar.cc/150?img=8',
-          creation_date: new Date()
-        },
-        {
-          account_id: 3,
-          name: 'Vacaciones Familia',
-          account_type: 'joint',
-          amount: 3400.00,
-          weekly_budget: 150,
-          monthly_budget: 800,
-          account_picture_url: 'https://i.pravatar.cc/150?img=12',
-          creation_date: new Date()
+    if (account) {
+      activeAccountId.value = accountId;
+      console.log('✅ Cuenta activa cambiada a:', account.name);
+      
+      // Persistir en localStorage (opcional)
+      localStorage.setItem('active_account_id', accountId.toString());
+    } else {
+      console.error('❌ Cuenta no encontrada:', accountId);
+    }
+  };
+
+  /**
+   * Obtener usuarios de una cuenta (para cuentas conjuntas)
+   */
+  const getAccountUsers = async (accountId: number): Promise<User[]> => {
+    try {
+      return await apiService.getAccountMembers(accountId);
+    } catch (error) {
+      console.error('❌ Error obteniendo usuarios de la cuenta:', error);
+      return [];
+    }
+  };
+
+
+  /**
+   * Actualizar cuenta
+   */
+  const updateAccount = async (accountId: number, data: Partial<Account>): Promise<void> => {
+    try {
+      await apiService.updateAccount(accountId, data);
+      
+      // Actualizar en el estado local
+      const index = accounts.value.findIndex(acc => acc.account_id === accountId);
+      if (index !== -1) {
+        const currentAccount = accounts.value[index];
+        if (currentAccount) {
+          accounts.value[index] = { ...currentAccount, ...data };
+          console.log('✅ Cuenta actualizada localmente');
         }
-      ]
-    };
-
-    const accounts = mockUserAccounts[userId] || [];
-    
-    accountsByUser.value.set(userId, accounts);
-    
-    return accounts;
+      }
+    } catch (error) {
+      console.error('❌ Error actualizando cuenta:', error);
+      throw error;
+    }
   };
 
-  // ✅ Obtener usuarios de una cuenta (para cuentas conjuntas)
-  const fetchAccountUsers = async (accountId: number): Promise<User[]> => {
-    // TODO: Fetch real cuando tengas backend
-    // const response = await fetch(`/api/accounts/${accountId}/users`);
-    // const users = await response.json();
-    // return users;
-
-    // Mock temporal
-    await new Promise(resolve => setTimeout(resolve, 200));
+  /**
+   * Refrescar cuentas (útil después de cambios)
+   */
+  const refreshAccounts = async () => {
+    if (!userId.value) return;
     
-    const mockAccountUsers: Record<number, User[]> = {
-      2: [ // Casa Clara y Juan
-        { user_id: 1, name: 'Clara', email: 'clara@wandaapp.com' },
-        { user_id: 2, name: 'Juan', email: 'juan@wandaapp.com' }
-      ],
-      3: [ // Vacaciones Familia
-        { user_id: 1, name: 'Clara', email: 'clara@wandaapp.com' },
-        { user_id: 2, name: 'Juan', email: 'juan@wandaapp.com' },
-        { user_id: 4, name: 'Pedro', email: 'pedro@wandaapp.com' }
-      ]
-    };
-    
-    return mockAccountUsers[accountId] || [];
+    try {
+      isLoadingAccounts.value = true;
+      accounts.value = await apiService.getUserAccounts(userId.value);
+      console.log('✅ Cuentas refrescadas');
+    } catch (error) {
+      console.error('❌ Error refrescando cuentas:', error);
+    } finally {
+      isLoadingAccounts.value = false;
+    }
   };
 
-  // ✅ Verificar si un usuario existe (para CreateJointAccountModal)
-  const checkUserExists = async (email: string): Promise<User | null> => {
-    // TODO: Fetch real cuando tengas backend
-    // const response = await fetch(`/api/users/check?email=${encodeURIComponent(email)}`);
-    // if (!response.ok) return null;
-    // const data = await response.json();
-    // return data.user;
-
-    // Mock temporal
-    await new Promise(resolve => setTimeout(resolve, 500));
+  /**
+   * Inicializar store (restaurar sesión si existe)
+   */
+  const initialize = async () => {
+    const userId = authService.getUserId();
     
-    const mockUsers: Record<string, User> = {
-      'juan@wandaapp.com': { user_id: 2, name: 'Juan', email: 'juan@wandaapp.com' },
-      'ana@wandaapp.com': { user_id: 3, name: 'Ana', email: 'ana@wandaapp.com' },
-      'pedro@wandaapp.com': { user_id: 4, name: 'Pedro', email: 'pedro@wandaapp.com' }
-    };
-    
-    return mockUsers[email.toLowerCase()] || null;
+    if (userId && authService.isAuthenticated()) {
+      console.log('🔄 Restaurando sesión del usuario:', userId);
+      
+      try {
+        await loadUserData(userId);
+        
+        // Restaurar cuenta activa desde localStorage
+        const savedAccountId = localStorage.getItem('active_account_id');
+        if (savedAccountId) {
+          const accountId = parseInt(savedAccountId, 10);
+          if (accounts.value.some(acc => acc.account_id === accountId)) {
+            activeAccountId.value = accountId;
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error restaurando sesión:', error);
+        logout();
+      }
+    }
   };
 
+  // ==================== RETURN ====================
+  
   return {
+    // Estado
+    currentUser,
+    accounts,
+    activeAccountId,
+    isLoadingUser,
+    isLoadingAccounts,
+    
+    // Computed
+    isAuthenticated,
     token,
+    userId,
+    activeAccount,
+    
+    // Actions
     login,
-    accountsByUser,
-    fetchUserAccounts,
-    fetchAccountUsers,
-    checkUserExists
+    register,
+    logout,
+    loadUserData,
+    setActiveAccount,
+    getAccountUsers,
+    updateAccount,
+    refreshAccounts,
+    initialize
   };
 });

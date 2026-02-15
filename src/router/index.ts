@@ -49,7 +49,7 @@ const router = createRouter({
       name: 'ObjectiveContributions',
       component: () => import('../views/ObjectiveContributionsView.vue'),
       props: true 
-    }         
+    } 
   ],
 })
 
