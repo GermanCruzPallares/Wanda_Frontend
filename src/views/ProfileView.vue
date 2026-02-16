@@ -11,7 +11,7 @@ import AccountsComponent from '@/components/Profile/AccountsComponent.vue';
 import BudgetComponent from '@/components/Profile/BudgetComponent.vue';
 import { ObjectFlags } from 'typescript';
 import ObjContribution from '@/components/Profile/ObjContribution.vue';
-
+import RecurringTransactionComponent from '@/components/Profile/RecurringTransactionComponent.vue';
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -80,6 +80,19 @@ const activeMenuItem = ref('inicio');
       v-if="activeAccount"
       :account-id = "activeAccount.account_id"
       ></ObjContribution>
+
+      <RecurringTransactionComponent
+        v-if="activeAccount"
+        :account-id="activeAccount.account_id"
+        type="expense"
+
+      />
+
+      <RecurringTransactionComponent
+        v-if="activeAccount"
+        :account-id="activeAccount.account_id"
+        type="income"
+      />
   </main>
 
    <BottomNav class="mobile-only" />
