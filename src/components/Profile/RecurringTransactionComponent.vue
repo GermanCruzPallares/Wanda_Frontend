@@ -88,7 +88,9 @@ const toggleShowAll = () => {
 };
 
 const sectionTitle = computed(() => {
-  return props.type === 'expense' ? '| Gastos Frecuentes' : '| Ingresos Frecuentes';
+  const count = transactions.value.length;
+  const baseTitle = props.type === 'expense' ? 'Gastos Frecuentes' : 'Ingresos Frecuentes';
+  return `| ${baseTitle} (${count})`;
 });
 </script>
 
@@ -106,12 +108,11 @@ const sectionTitle = computed(() => {
         class="recurring-item"
         @click="handleTransactionClick(transaction.transaction_id)"
       >
-        <!-- Icono de categoría -->
+
         <div class="recurring-item__icon">
           <component :is="getCategoryIcon(transaction.category)" />
         </div>
         
-        <!-- Info de la transacción -->
         <div class="recurring-item__info">
           <h4 class="recurring-item__title">{{ transaction.category }}</h4>
           <div class="recurring-item__details">
@@ -298,7 +299,7 @@ const sectionTitle = computed(() => {
 
   &__amount {
     font-size: 16px;
-    font-weight: 700;
+    font-weight: 600;
     white-space: nowrap;
 
     &--negative {
