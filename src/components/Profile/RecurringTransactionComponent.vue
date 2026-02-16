@@ -175,7 +175,6 @@ const sectionTitle = computed(() => {
 
   @media (min-width: 768px) {
     padding: 0 0 1.5rem 0;
-    margin: 0 16px;
   }
 
   &__header {

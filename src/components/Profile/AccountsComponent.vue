@@ -41,22 +41,20 @@ const getAccountAvatar = (account: any) => {
 @import '@/styles/base/variables.scss';
 
 .accounts-section {
-  padding: 0 $section-margin-horizontal;
-}
-
-.account {
   padding: 0 $section-margin-horizontal 1.5rem;
 
-@media (min-width: 768px) {
-    padding: 0 0 1.5rem 0;
-    margin: 0 16px;
+  @media (min-width: 768px) {
+    padding: 0;
   }
+}
 
-  &-list{
-    display: flex;
-    flex-direction: column;
-    gap: $section-gap;
-  }
+.account-list {
+  padding: 0 $section-margin-horizontal;
+  display: flex;
+  flex-direction: column;
+  gap: $section-gap;
+  margin-top: 1rem;
+
 }
 
 .account-item {
@@ -64,16 +62,12 @@ const getAccountAvatar = (account: any) => {
   align-items: center;
   gap: 16px;
   padding: 1.25rem;
-  margin: 0 16px;
   background-color: $section-bg-primary;
   border-radius: $card-border-radius;
   cursor: pointer;
   transition: transform $transition-speed $transition-ease,
               background-color $transition-speed $transition-ease;
 
-  &:active {
-    transform: translateX(1px);
-  }
 }
 
 .account-avatar {
