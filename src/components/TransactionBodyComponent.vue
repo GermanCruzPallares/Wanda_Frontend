@@ -48,6 +48,18 @@ const closeKeypad = () => {
   showKeypad.value = false
 }
 
+const sliderRef = ref(null)
+
+const scrollSlider = (direction) => {
+  if (sliderRef.value) {
+    const scrollAmount = 200
+    sliderRef.value.scrollBy({
+      left: direction === 'left' ? -scrollAmount : scrollAmount,
+      behavior: 'smooth',
+    })
+  }
+}
+
 const categories = [
   { id: 1, name: 'Comida', icon: IconFood },
   { id: 2, name: 'Transporte', icon: IconTransport },
@@ -85,6 +97,28 @@ const handleKeypad = (key) => {
   }
 }
 
+const handleKeydown = (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+
+  if (!isNaN(e.key) && e.key !== ' ') {
+    handleKeypad(parseInt(e.key))
+  } else if (e.key === 'Backspace') {
+    handleKeypad('backspace')
+  } else if (e.key === ',' || e.key === '.') {
+    handleKeypad(',')
+  } else if (e.key === 'Enter') {
+    save()
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
+})
+
 const save = () => {
   console.log({
     type: type.value,
@@ -115,18 +149,28 @@ const save = () => {
         </div>
       </div>
 
-      <div class="categories-slider">
-        <button
-          v-for="category in categories"
-          :key="category.id"
-          class="category-item"
-          :class="{ selected: selectedCategory === category.id }"
-          @click="selectedCategory = category.id"
-        >
-          <div class="icon-circle">
-            <component :is="category.icon" class="category-icon" />
-          </div>
-          <span class="cat-name">{{ category.name }}</span>
+      <div class="slider-container">
+        <button class="slider-arrow left" @click="scrollSlider('left')">
+          <IconArrow class="arrow-icon-left" />
+        </button>
+
+        <div class="categories-slider" ref="sliderRef">
+          <button
+            v-for="category in categories"
+            :key="category.id"
+            class="category-item"
+            :class="{ selected: selectedCategory === category.id }"
+            @click="selectedCategory = category.id"
+          >
+            <div class="icon-circle">
+              <component :is="category.icon" class="category-icon" />
+            </div>
+            <span class="cat-name">{{ category.name }}</span>
+          </button>
+        </div>
+
+        <button class="slider-arrow right" @click="scrollSlider('right')">
+          <IconArrow class="arrow-icon-right" />
         </button>
       </div>
 
