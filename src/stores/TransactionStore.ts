@@ -5,117 +5,150 @@ import type { Transaction } from '@/types/models';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7085/api';
 
 export const useTransactionStore = defineStore('transaction', () => {
-  // ✅ Estado: Map para cachear transacciones por accountId
+  
+  // ==================== ESTADO ====================
+  
   const transactionsByAccount = ref<Map<number, Transaction[]>>(new Map());
 
-  /**
-   * Obtener el token de autenticación
-   */
-  const getAuthToken = (): string | null => {
-    return localStorage.getItem('wanda_auth_token');
-  };
-
-  /**
-   * Headers con autenticación
-   */
+  // ==================== HELPERS ====================
+  
   const getAuthHeaders = (): HeadersInit => {
-    const token = getAuthToken();
+    const token = localStorage.getItem('wanda_auth_token');
     return {
       'Content-Type': 'application/json',
       ...(token && { 'Authorization': `Bearer ${token}` })
     };
   };
 
+  const handleUnauthorized = () => {
+    localStorage.removeItem('wanda_auth_token');
+    localStorage.removeItem('wanda_user_id');
+    window.location.href = '/login';
+  };
+
+  // ==================== API CALLS ====================
+
   /**
-   * GET /api/accounts/{accountId}/transactions
-   * Obtener todas las transacciones de una cuenta
+   * Obtener transacciones con filtros opcionales
+   * Ejemplos:
+   * - fetchTransactions(1) → Todas las transacciones
+   * - fetchTransactions(1, { type: 'saving' }) → Solo aportaciones
+   * - fetchTransactions(1, { objectiveId: 5 }) → Solo del objetivo 5
+   * - fetchTransactions(1, { type: 'saving', objectiveId: 5 }) → Aportaciones del objetivo 5
    */
-  const fetchTransactions = async (accountId: number): Promise<Transaction[]> => {
+  const fetchTransactions = async (
+    accountId: number,
+    filters?: {
+      objectiveId?: number;
+      type?: 'expense' | 'income' | 'saving';
+    }
+  ): Promise<Transaction[]> => {
     try {
-      console.log(`📡 GET /api/accounts/${accountId}/transactions`);
+      // Construir URL
+      let url = `${API_BASE_URL}/accounts/${accountId}/transactions`;
       
-      const response = await fetch(`${API_BASE_URL}/accounts/${accountId}/transactions`, {
-        method: 'GET',
-        headers: getAuthHeaders()
+      // Añadir filtros si existen
+      if (filters) {
+        const params = new URLSearchParams();
+        if (filters.objectiveId !== undefined) params.append('objectiveId', filters.objectiveId.toString());
+        if (filters.type) params.append('type', filters.type);
+        
+        const query = params.toString();
+        if (query) url += `?${query}`;
+      }
+      
+      console.log(`📡 GET ${url}`);
+      
+      // Hacer petición
+      const response = await fetch(url, { 
+        method: 'GET', 
+        headers: getAuthHeaders() 
       });
 
+      // Manejar errores
+      if (response.status === 401) {
+        handleUnauthorized();
+        return [];
+      }
+      
+      if (response.status === 404) {
+        console.log('ℹ️ No hay transacciones');
+        return [];
+      }
+      
       if (!response.ok) {
-        if (response.status === 401) {
-          console.error('❌ No autorizado - redirigiendo a login');
-          localStorage.removeItem('wanda_auth_token');
-          localStorage.removeItem('wanda_user_id');
-          window.location.href = '/login';
-          return [];
-        }
-        
-        if (response.status === 404) {
-          console.log('ℹ️ No se encontraron transacciones para esta cuenta');
-          transactionsByAccount.value.set(accountId, []);
-          return [];
-        }
-        
-        if (response.status === 400) {
-          const errorText = await response.text();
-          throw new Error(errorText || 'Parámetros inválidos');
-        }
-        
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
+        throw new Error(`Error ${response.status}`);
       }
 
+      // Obtener datos
       const transactions = await response.json();
+      console.log(`✅ ${transactions.length} transacciones cargadas`);
       
-      console.log('✅ Transacciones cargadas:', transactions.length);
-      
-      // Guardar en caché
-      transactionsByAccount.value.set(accountId, transactions);
+      // Cachear solo si no hay filtros (datos completos)
+      if (!filters) {
+        transactionsByAccount.value.set(accountId, transactions);
+      }
       
       return transactions;
 
     } catch (error) {
-      console.error('❌ Error al cargar transacciones:', error);
+      console.error('❌ Error:', error);
       return [];
     }
   };
 
   /**
-   * GET /api/transactions/{id}
-   * Obtener una transacción específica por ID
+   * Obtener aportaciones (con objetivo opcional)
+   * Ejemplos:
+   * - fetchSavings(1) → Todas las aportaciones
+   * - fetchSavings(1, 5) → Aportaciones del objetivo 5
+   */
+  const fetchSavings = async (
+    accountId: number, 
+    objectiveId?: number
+  ): Promise<Transaction[]> => {
+    return fetchTransactions(accountId, {
+      type: 'saving',
+      ...(objectiveId !== undefined && { objectiveId })
+    });
+  };
+
+  /**
+   * Obtener todas las transacciones de un objetivo
+   */
+  const fetchTransactionsByObjective = async (
+    accountId: number,
+    objectiveId: number
+  ): Promise<Transaction[]> => {
+    return fetchTransactions(accountId, { objectiveId });
+  };
+
+  /**
+   * Obtener una transacción específica
    */
   const fetchTransactionById = async (transactionId: number): Promise<Transaction | null> => {
     try {
-      console.log(`📡 GET /api/transactions/${transactionId}`);
-      
       const response = await fetch(`${API_BASE_URL}/transactions/${transactionId}`, {
         method: 'GET',
         headers: getAuthHeaders()
       });
 
-      if (!response.ok) {
-        if (response.status === 404) {
-          console.error('❌ Transacción no encontrada');
-          return null;
-        }
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-
-      const transaction = await response.json();
-      console.log('✅ Transacción cargada:', transaction);
+      if (!response.ok) return null;
       
-      return transaction;
+      return await response.json();
 
     } catch (error) {
-      console.error('❌ Error al cargar transacción:', error);
+      console.error('❌ Error:', error);
       return null;
     }
   };
 
   /**
-   * POST /api/accounts/{accountId}/transactions
-   * Crear una nueva transacción
+   * Crear una transacción
    */
   const createTransaction = async (
     accountId: number,
-    transactionData: {
+    data: {
       user_id: number;
       objective_id?: number;
       category: string;
@@ -130,48 +163,33 @@ export const useTransactionStore = defineStore('transaction', () => {
     }
   ): Promise<boolean> => {
     try {
-      console.log(`📡 POST /api/accounts/${accountId}/transactions`);
-
       const response = await fetch(`${API_BASE_URL}/accounts/${accountId}/transactions`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify(transactionData)
+        body: JSON.stringify(data)
       });
 
       if (!response.ok) {
-        if (response.status === 400) {
-          const errorText = await response.text();
-          throw new Error(errorText || 'Datos inválidos');
-        }
-        if (response.status === 404) {
-          throw new Error('Cuenta no encontrada');
-        }
-        if (response.status === 409) {
-          const errorText = await response.text();
-          throw new Error(errorText || 'Conflicto al crear la transacción');
-        }
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
+        const errorText = await response.text();
+        throw new Error(errorText || `Error ${response.status}`);
       }
 
       console.log('✅ Transacción creada');
 
-      // Invalidar caché para recargar
+      // Limpiar caché y recargar
       transactionsByAccount.value.delete(accountId);
-      
-      // Recargar transacciones
       await fetchTransactions(accountId);
 
       return true;
 
     } catch (error) {
-      console.error('❌ Error al crear transacción:', error);
+      console.error('❌ Error:', error);
       throw error;
     }
   };
 
   /**
-   * PUT /api/transactions/{id}
-   * Actualizar una transacción existente
+   * Actualizar una transacción
    */
   const updateTransaction = async (
     transactionId: number,
@@ -188,111 +206,71 @@ export const useTransactionStore = defineStore('transaction', () => {
     }
   ): Promise<boolean> => {
     try {
-      console.log(`📡 PUT /api/transactions/${transactionId}`);
-
       const response = await fetch(`${API_BASE_URL}/transactions/${transactionId}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify(updates)
       });
 
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error('Transacción no encontrada');
-        }
-        if (response.status === 400) {
-          const errorText = await response.text();
-          throw new Error(errorText || 'Datos inválidos');
-        }
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
+      if (!response.ok) throw new Error(`Error ${response.status}`);
 
       console.log('✅ Transacción actualizada');
-
-      // Invalidar caché de todas las cuentas (no sabemos a cuál pertenece)
+      
+      // Limpiar todo el caché
       transactionsByAccount.value.clear();
 
       return true;
 
     } catch (error) {
-      console.error('❌ Error al actualizar transacción:', error);
+      console.error('❌ Error:', error);
       throw error;
     }
   };
 
   /**
-   * DELETE /api/transactions/{id}
    * Eliminar una transacción
    */
-  const deleteTransaction = async (transactionId: number, accountId?: number): Promise<boolean> => {
+  const deleteTransaction = async (
+    transactionId: number, 
+    accountId?: number
+  ): Promise<boolean> => {
     try {
-      console.log(`📡 DELETE /api/transactions/${transactionId}`);
-
       const response = await fetch(`${API_BASE_URL}/transactions/${transactionId}`, {
         method: 'DELETE',
         headers: getAuthHeaders()
       });
 
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error('Transacción no encontrada');
-        }
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
+      if (!response.ok) throw new Error(`Error ${response.status}`);
 
       console.log('✅ Transacción eliminada');
 
-      // Invalidar caché
+      // Limpiar caché
       if (accountId) {
         transactionsByAccount.value.delete(accountId);
-        // Recargar transacciones de esa cuenta
         await fetchTransactions(accountId);
       } else {
-        // Si no sabemos la cuenta, limpiar todo el caché
         transactionsByAccount.value.clear();
       }
 
       return true;
 
     } catch (error) {
-      console.error('❌ Error al eliminar transacción:', error);
+      console.error('❌ Error:', error);
       throw error;
     }
   };
 
-  /**
-   * Filtrar transacciones por tipo desde el caché
-   */
-  const getTransactionsByType = (
-    accountId: number, 
-    type: 'expense' | 'income' | 'saving'
-  ): Transaction[] => {
-    const transactions = transactionsByAccount.value.get(accountId);
-    if (!transactions) return [];
-    
-    return transactions.filter(t => t.transaction_type === type);
-  };
+  // ==================== UTILIDADES ====================
 
   /**
-   * Obtener solo los ahorros (savings) de una cuenta
-   */
-  const fetchSavings = async (accountId: number): Promise<Transaction[]> => {
-    const transactions = await fetchTransactions(accountId);
-    return transactions.filter(t => t.transaction_type === 'saving');
-  };
-
-  /**
-   * Obtener transacciones desde caché (sin llamada al backend)
+   * Obtener desde caché (sin llamar al backend)
    */
   const getTransactionsFromCache = (accountId: number): Transaction[] | null => {
-    if (transactionsByAccount.value.has(accountId)) {
-      return transactionsByAccount.value.get(accountId)!;
-    }
-    return null;
+    return transactionsByAccount.value.get(accountId) || null;
   };
 
   /**
-   * Limpiar caché de una cuenta específica o todo
+   * Limpiar caché
    */
   const clearCache = (accountId?: number) => {
     if (accountId) {
@@ -303,12 +281,14 @@ export const useTransactionStore = defineStore('transaction', () => {
   };
 
   /**
-   * Refrescar transacciones de una cuenta (forzar recarga desde backend)
+   * Refrescar (forzar recarga)
    */
   const refreshTransactions = async (accountId: number): Promise<Transaction[]> => {
     transactionsByAccount.value.delete(accountId);
     return await fetchTransactions(accountId);
   };
+
+  // ==================== RETURN ====================
 
   return {
     // Estado
@@ -316,14 +296,14 @@ export const useTransactionStore = defineStore('transaction', () => {
     
     // Métodos principales
     fetchTransactions,
+    fetchSavings,
+    fetchTransactionsByObjective,
     fetchTransactionById,
     createTransaction,
     updateTransaction,
     deleteTransaction,
     
-    // Métodos auxiliares
-    getTransactionsByType,
-    fetchSavings,
+    // Utilidades
     getTransactionsFromCache,
     clearCache,
     refreshTransactions

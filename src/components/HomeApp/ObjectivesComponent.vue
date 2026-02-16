@@ -1,5 +1,4 @@
 <template>
-  <!-- ✅ Solo renderizar cuando NO está cargando -->
   <div v-if="!isLoading">
     <SectionTitle 
       :title="`| Objetivos (${objectives.length})`"
@@ -13,7 +12,7 @@
         <RouterLink 
           v-for="objective in objectives"
           :key="objective.objective_id"
-          :to="`/home/${objective.objective_id}/contributions`"
+          :to="`/home/contributions/${objective.objective_id}`"
           class="objective-card"
         >
           <div class="objective-card__header">
@@ -44,7 +43,6 @@
         </RouterLink>
       </div>
 
-      <!-- Mensaje si no hay objetivos -->
       <div v-if="objectives.length === 0" class="empty-state">
         <p>No hay objetivos registrados</p>
       </div>
@@ -81,7 +79,13 @@ const isLoading = ref(false);
 const loadObjectives = async (accountId: number) => {
   isLoading.value = true;
   
-  objectives.value = await objectiveStore.fetchObjectives(accountId);
+  // Asegúrate de que el store devuelve un array (aunque esté vacío)
+  try {
+    objectives.value = await objectiveStore.fetchObjectives(accountId);
+  } catch (error) {
+    console.error("Error cargando objetivos", error);
+    objectives.value = [];
+  }
   
   if (objectives.value) {
     emit('objectivesLoaded', objectives.value);
