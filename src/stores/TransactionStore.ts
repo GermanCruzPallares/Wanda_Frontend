@@ -119,16 +119,8 @@ export const useTransactionStore = defineStore('transaction', () => {
     return fetchTransactions(accountId, { objectiveId })
   }
 
-  /**
-   * Obtener una transacción específica
-   */
   const fetchTransactionById = async (transactionId: number): Promise<Transaction | null> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/transactions/${transactionId}`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      })
-
       if (!response.ok) return null
 
       return await response.json()
@@ -137,6 +129,18 @@ export const useTransactionStore = defineStore('transaction', () => {
       return null
     }
   }
+        headers: getAuthHeaders()
+      });
+
+      if (!response.ok) return null;
+      
+      return await response.json();
+
+    } catch (error) {
+      console.error('❌ Error:', error);
+      return null;
+    }
+  };
 
   /**
    * Crear una transacción
@@ -282,7 +286,6 @@ export const useTransactionStore = defineStore('transaction', () => {
   return {
     // Estado
     transactionsByAccount,
-
     // Métodos principales
     fetchTransactions,
     fetchSavings,
@@ -297,4 +300,5 @@ export const useTransactionStore = defineStore('transaction', () => {
     clearCache,
     refreshTransactions,
   }
-})
+});
+

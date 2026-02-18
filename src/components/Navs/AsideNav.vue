@@ -1,51 +1,62 @@
 <template>
   <aside class="aside-nav">
-    <!-- Logo -->
+  
     <div class="aside-nav__logo">
       <img src="../../images/OscuroPrincipal.png" alt="Wanda Logo" class="logo-image" />
     </div>
 
-    <!-- Menú principal de navegación -->
     <nav class="aside-nav__menu">
-      <button
+      <router-link
         v-for="item in menuItems"
         :key="item.id"
+        :to="item.path"
         class="menu-item"
-        :class="{ 'menu-item--active': item.id === activeItem }"
-        @click="handleMenuClick(item.id)"
+        :class="{ 'menu-item--active': currentRoute === item.path }"
       >
         <component 
           :is="item.icon" 
-          :is-active="item.id === activeItem"
+          :is-active="currentRoute === item.path"
           class="menu-item__icon" 
         />
         <span class="menu-item__label">{{ item.label }}</span>
-      </button>
+      </router-link>
     </nav>
 
     <div class="aside-nav__footer">
-      <!-- Estado de carga -->
-      <div v-if="isLoading" class="user-button user-button--loading">
-        <div class="skeleton-avatar"></div>
-        <div class="skeleton-text"></div>
-      </div>
-
-      <!-- Usuario cargado -->
-      <button v-else class="user-button" @click="handleAvatarClick">
+      <button class="user-button" @click="openAccountSwitcher">
         <img 
-          :src="account?.account_picture_url || 'https://i.pravatar.cc/150?img=5'" 
+          :src="avatarSrc" 
           alt="User avatar"
           class="user-button__avatar"
         />
-        <span class="user-button__name">{{ account?.name || 'Cuenta' }}</span>
+        <span class="user-button__name">
+          {{ userStore.activeAccount?.name || 'Cuenta' }}
+        </span>
       </button>
     </div>
+
+    <!-- ✅ Modal integrado en el AsideNav -->
+    <AccountSwitcherModal
+      v-if="userStore.currentUser"
+      :is-open="isAccountSwitcherOpen"
+      :user-id="userStore.userId"
+      :active-account-id="userStore.activeAccountId"
+      :current-user="userStore.currentUser"
+      @close="closeAccountSwitcher"
+      @select-account="handleSelectAccount"
+      @create-account="handleCreateJointAccount"
+    />
+    <!-- ☝️ CAMBIO: @create-joint-account → @create-account -->
   </aside>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue';
-import type { Account } from '@/types/models';
+import { ref, computed } from 'vue';
+import { useRouter } from 'vue-router';
+import { useUserStore } from '@/stores/UserStore';
+import { useAccountStore } from '@/stores/AccountStore';
+import { getAvatarDataUrl } from '@/components/icons/AvatarIcons';
+import AccountSwitcherModal from '@/components/Modals/AccountSwitcherModal.vue';
 import HomeIcon from '../icons/HomeIcon.vue';
 import PlusIcon from '../icons/PlusIcon.vue';
 import CalculatorIcon from '../icons/CalculatorIcon.vue';
@@ -55,111 +66,73 @@ interface MenuItem {
   id: string;
   label: string;
   icon: any;
+  path: string;
 }
 
-interface Props {
-  activeItem?: string;
-  accountId?: number; // ✅ Solo necesita el ID
-}
+// ✅ Sin props, todo del store
+const userStore = useUserStore();
+const accountStore = useAccountStore();
+const router = useRouter();
 
-const props = withDefaults(defineProps<Props>(), {
-  activeItem: 'inicio'
+// ✅ Estado local solo para el modal
+const isAccountSwitcherOpen = ref(false);
+
+// ✅ Obtener ruta activa desde vue-router
+const currentRoute = computed(() => router.currentRoute.value.path);
+
+// ✅ Avatar reactivo del store
+const avatarSrc = computed(() => {
+  const account = userStore.activeAccount;
+  if (!account) return getAvatarDataUrl('personal');
+  
+  if (account.account_picture_url) {
+    return account.account_picture_url;
+  }
+  
+  return getAvatarDataUrl(account.account_type || 'personal');
 });
-
-const emit = defineEmits<{
-  navigate: [itemId: string];
-  avatarClick: [];
-  accountLoaded: [account: Account];
-}>();
-
-// ✅ Estado local
-const account = ref<Account | null>(null);
-const isLoading = ref(false);
 
 const menuItems: MenuItem[] = [
-  { id: 'inicio', label: 'Inicio', icon: HomeIcon },
-  { id: 'add', label: 'Añadir movimiento', icon: PlusIcon },
-  { id: 'libro', label: 'Libro Cuentas', icon: CalculatorIcon },
-  { id: 'perfil', label: 'Perfil', icon: UserIcon },
+  { id: 'inicio', label: 'Inicio', icon: HomeIcon, path: '/home' }, 
+  { id: 'add', label: 'Añadir movimiento', icon: PlusIcon, path: '/transaction' },
+  { id: 'libro', label: 'Libro Cuentas', icon: CalculatorIcon, path: '/book' },
+  { id: 'perfil', label: 'Perfil', icon: UserIcon, path: '/profile' }, 
 ];
 
-// ✅ Simular llamada GET /api/accounts/{id}
-const fetchAccount = async (accountId: number) => {
-  console.log(`📡 AsideNav: Simulando llamada GET /api/accounts/${accountId}`);
-  
-  isLoading.value = true;
-  
-  await new Promise(resolve => setTimeout(resolve, 300));
-  
-  const mockAccounts: Record<number, Account> = {
-    1: {
-      account_id: 1,
-      name: 'Clara',
-      account_type: 'personal',
-      amount: 13789.37,
-      weekly_budget: 200,
-      monthly_budget: 2000,
-      account_picture_url: 'https://i.pravatar.cc/150?img=5',
-      creation_date: new Date()
-    },
-    2: {
-      account_id: 2,
-      name: 'Cuenta Conjunta',
-      account_type: 'joint',
-      amount: 25600.50,
-      weekly_budget: 300,
-      monthly_budget: 3500,
-      account_picture_url: 'https://i.pravatar.cc/150?img=2',
-      creation_date: new Date()
-    },
-    3: {
-      account_id: 3,
-      name: 'Ahorros',
-      account_type: 'personal',
-      amount: 8430.20,
-      weekly_budget: 150,
-      monthly_budget: 1500,
-      account_picture_url: 'https://i.pravatar.cc/150?img=3',
-      creation_date: new Date()
-    }
-  };
-  
-  const accountData = mockAccounts[accountId];
-  
-  if (accountData) {
-    account.value = accountData;
-    isLoading.value = false;
-    
-    emit('accountLoaded', accountData);
-    
-    console.log('✅ AsideNav: Cuenta cargada:', accountData);
-  } else {
-    console.error('❌ AsideNav: Cuenta no encontrada');
-    isLoading.value = false;
-  }
+// ✅ Funciones del modal
+const openAccountSwitcher = () => {
+  console.log('🖱️ Opening account switcher from AsideNav');
+  isAccountSwitcherOpen.value = true;
 };
 
-// ✅ Cargar cuando se monta
-onMounted(() => {
-  if (props.accountId) {
-    fetchAccount(props.accountId);
-  }
-});
-
-// ✅ Recargar cuando cambia la cuenta
-watch(() => props.accountId, (newAccountId) => {
-  if (newAccountId) {
-    console.log('🔄 AsideNav: Cuenta cambiada, recargando...');
-    fetchAccount(newAccountId);
-  }
-});
-
-const handleMenuClick = (itemId: string) => {
-  emit('navigate', itemId);
+const closeAccountSwitcher = () => {
+  console.log('❌ Closing account switcher');
+  isAccountSwitcherOpen.value = false;
 };
 
-const handleAvatarClick = () => {
-  emit('avatarClick');
+const handleSelectAccount = (accountId: number) => {
+  console.log('🔄 Account selected:', accountId);
+  userStore.setActiveAccount(accountId);
+  closeAccountSwitcher();
+};
+
+// ✅ CORREGIDO: Recibir userIds (números) en lugar de userEmails
+const handleCreateJointAccount = async (accountName: string, userIds: number[]) => {
+  console.log('4️⃣ AsideNav recibió:', accountName, userIds);
+  
+  try {
+    await accountStore.createJointAccount({
+      name: accountName,
+      userIds: userIds // ✅ Ya son números
+    });
+    
+    await userStore.refreshAccounts();
+    closeAccountSwitcher();
+    
+  } catch (error) {
+    console.error('❌ Error creando cuenta conjunta:', error);
+    alert('Error al crear la cuenta. Por favor, intenta de nuevo.');
+  }
 };
 </script>
 
@@ -219,6 +192,7 @@ const handleAvatarClick = () => {
   border-radius: $card-border-radius;
   cursor: pointer;
   text-align: left;
+  text-decoration: none;
   transition: transform $transition-speed $transition-ease;
 
   &:hover {
@@ -270,14 +244,6 @@ const handleAvatarClick = () => {
     transform: translateX(2px);
   }
 
-  &--loading {
-    cursor: default;
-    
-    &:hover {
-      transform: none;
-    }
-  }
-
   &__avatar {
     width: 40px;
     height: 40px;
@@ -291,34 +257,6 @@ const handleAvatarClick = () => {
     font-weight: 500;
     color: $color-text;
     text-align: left;
-  }
-}
-
-// ✅ Estados de carga (skeleton)
-.skeleton-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: loading 1.5s infinite;
-}
-
-.skeleton-text {
-  flex: 1;
-  height: 16px;
-  border-radius: 4px;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: loading 1.5s infinite;
-}
-
-@keyframes loading {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
   }
 }
 </style>

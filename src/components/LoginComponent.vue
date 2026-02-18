@@ -1,9 +1,47 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-const NavBtnStatus = ref(false)
-function changeStatus() {
-  NavBtnStatus.value = !NavBtnStatus.value
-}
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useUserStore } from '@/stores/UserStore';
+
+const router = useRouter();
+const userStore = useUserStore();
+
+const email = ref('');
+const password = ref('');
+const showPassword = ref(false);
+const isLoading = ref(false);
+const errorMessage = ref('');
+
+const togglePasswordVisibility = () => {
+  showPassword.value = !showPassword.value;
+};
+
+const handleSubmit = async (e: Event) => {
+  e.preventDefault();
+  
+  // Validación básica
+  if (!email.value || !password.value) {
+    errorMessage.value = 'Por favor, completa todos los campos';
+    return;
+  }
+
+  isLoading.value = true;
+  errorMessage.value = '';
+
+  try {
+    await userStore.login(email.value, password.value);
+
+    console.log('✅ Login exitoso');
+    
+    // Redirigir a la home
+    router.push('/home');
+  } catch (error: any) {
+    console.error('❌ Error en login:', error);
+    errorMessage.value = error.message || 'Error al iniciar sesión. Por favor, verifica tus credenciales.';
+  } finally {
+    isLoading.value = false;
+  }
+};
 </script>
 
 <template>
@@ -13,7 +51,12 @@ function changeStatus() {
       <h2 class="card__title">Accede a tu cuenta</h2>
     </header>
 
-    <form class="auth-form">
+    <form class="auth-form" @submit="handleSubmit">
+      <!-- Mensaje de error -->
+      <div v-if="errorMessage" class="error-message">
+        {{ errorMessage }}
+      </div>
+
       <div class="form-group">
         <div class="form-group__field">
           <span class="form-group__icon">
@@ -28,7 +71,14 @@ function changeStatus() {
               />
             </svg>
           </span>
-          <input type="email" class="form-group__input" placeholder="Correo electrónico" required />
+          <input 
+            type="email" 
+            v-model="email"
+            class="form-group__input" 
+            placeholder="Correo electrónico" 
+            required 
+            :disabled="isLoading"
+          />
         </div>
       </div>
 
@@ -48,14 +98,21 @@ function changeStatus() {
           </span>
 
           <input
-            type="password"
+            :type="showPassword ? 'text' : 'password'"
+            v-model="password"
             id="password-input"
             class="form-group__input"
             placeholder="Contraseña"
             required
+            :disabled="isLoading"
           />
 
-          <button type="button" id="toggle-password" class="form-group__toggle-btn">
+          <button 
+            type="button" 
+            id="toggle-password" 
+            class="form-group__toggle-btn"
+            @click="togglePasswordVisibility"
+          >
             <svg
               id="eye-icon"
               xmlns="http://www.w3.org/2000/svg"
@@ -70,12 +127,16 @@ function changeStatus() {
             >
               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
               <circle cx="12" cy="12" r="3"></circle>
+              <!-- Línea tachada cuando la contraseña está visible -->
+              <line v-if="showPassword" x1="1" y1="1" x2="23" y2="23"></line>
             </svg>
           </button>
         </div>
       </div>
 
-      <button type="submit" class="btn-primary">Enviar</button>
+      <button type="submit" class="btn-primary" :disabled="isLoading">
+        {{ isLoading ? 'Iniciando sesión...' : 'Enviar' }}
+      </button>
     </form>
   </section>
 
@@ -86,10 +147,28 @@ function changeStatus() {
 
 </template>
 
-<style>
-
-a{
+<style scoped lang="scss">
+a {
   text-decoration: none;
 }
 
+.error-message {
+  background-color: rgba(244, 67, 54, 0.1);
+  border-left: 4px solid #f44336;
+  padding: 12px 16px;
+  border-radius: 8px;
+  color: #c41e3a;
+  font-size: 14px;
+  margin-bottom: 1rem;
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.form-group__input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 </style>

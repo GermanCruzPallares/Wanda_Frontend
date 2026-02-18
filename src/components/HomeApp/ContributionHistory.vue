@@ -1,70 +1,6 @@
-<template>
-  <div class="savings-history">
-    <!-- Estado de carga -->
-    <div v-if="isLoading" class="loading-state">
-      <p>Cargando aportaciones...</p>
-    </div>
-
-    <template v-else>
-      <div class="filter-section">
-        <select v-model="selectedObjectiveId" class="objective-filter">
-          <option :value="null">Todos los objetivos</option>
-          <option 
-            v-for="objective in objectives" 
-            :key="objective.objective_id"
-            :value="objective.objective_id"
-          >
-            {{ objective.name }}
-          </option>
-        </select>
-      </div>
-
-      <!-- Lista de aportaciones -->
-      <div class="savings-list">
-        <div
-          v-for="transaction in filteredSavings"
-          :key="transaction.transaction_id"
-          class="saving-item"
-          @click="handleSavingClick(transaction.transaction_id)"
-        >
-          <!-- Icono del objetivo -->
-          <div class="saving-item__icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-            </svg>
-          </div>
-
-          <div class="saving-item__info">
-            <h4 class="saving-item__title">{{ getObjectiveName(transaction.objective_id) }}</h4>
-            <!-- ✅ Solo mostrar la fecha, sin descripción innecesaria -->
-            <p class="saving-item__date">{{ formatDate(transaction.transaction_date) }}</p>
-          </div>
-
-          <div class="saving-item__right">
-            <span class="saving-item__amount">
-              +{{ formatAmount(transaction.amount) }}
-            </span>
-            
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="saving-item__arrow">
-              <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-        </div>
-
-        <!-- Mensaje si no hay aportaciones -->
-        <div v-if="filteredSavings.length === 0" class="empty-state">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" stroke="currentColor" stroke-width="2" opacity="0.3"/>
-          </svg>
-          <p>No hay aportaciones registradas</p>
-        </div>
-      </div>
-    </template>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
+import { useTransactionStore } from '@/stores/TransactionStore';
 import type { Transaction, Objective } from '@/types/models';
 
 interface Props {
@@ -82,169 +18,36 @@ const emit = defineEmits<{
   transactionsLoaded: [transactions: Transaction[]];
 }>();
 
-// ✅ Estado local
+// ✅ Usar el store de Pinia
+const transactionStore = useTransactionStore();
+
+// Estado local
 const transactions = ref<Transaction[]>([]);
 const isLoading = ref(false);
 const selectedObjectiveId = ref<number | null>(props.initialSelectedObjective);
 
-// ✅ Simular llamada GET /api/accounts/{accountId}/transactions?type=saving
-const fetchSavings = async (accountId: number) => {
-  console.log(`📡 ObjectiveSavingsHistory: Simulando llamada GET /api/accounts/${accountId}/transactions?type=saving`);
-  
+// ✅ Cargar aportaciones desde el store
+const loadSavings = async (accountId: number) => {
   isLoading.value = true;
   
-  await new Promise(resolve => setTimeout(resolve, 500));
+  transactions.value = await transactionStore.fetchSavings(accountId);
   
-  // ✅ ACTUALIZADO: Las aportaciones a objetivos son SIEMPRE manuales y puntuales
-  const mockSavings: Transaction[] = [
-    {
-      transaction_id: 101,
-      account_id: accountId,
-      user_id: 1,
-      objective_id: 1,
-      category: 'Ahorro',
-      amount: 500,
-      transaction_type: 'saving',
-      concept: null,
-      transaction_date: new Date(2026, 0, 10, 10, 30),
-      isRecurring: false, 
-      frequency: null,    
-      end_date: null,
-      split_type: null,
-      last_execution_date: null 
-    },
-    {
-      transaction_id: 102,
-      account_id: accountId,
-      user_id: 1,
-      objective_id: 2,
-      category: 'Ahorro',
-      amount: 500,
-      transaction_type: 'saving',
-      concept: null,
-      transaction_date: new Date(2026, 0, 10, 15, 45),
-      isRecurring: false,
-      frequency: null,
-      end_date: null,
-      split_type: null,
-      last_execution_date: null
-    },
-    {
-      transaction_id: 103,
-      account_id: accountId,
-      user_id: 1,
-      objective_id: 1,
-      category: 'Ahorro',
-      amount: 500,
-      transaction_type: 'saving',
-      concept: null,
-      transaction_date: new Date(2026, 0, 9, 9, 20),
-      isRecurring: false,
-      frequency: null,
-      end_date: null,
-      split_type: null,
-      last_execution_date: null
-    },
-    {
-      transaction_id: 104,
-      account_id: accountId,
-      user_id: 1,
-      objective_id: 1,
-      category: 'Ahorro',
-      amount: 500,
-      transaction_type: 'saving',
-      concept: null,
-      transaction_date: new Date(2026, 0, 8, 14, 10),
-      isRecurring: false,
-      frequency: null,
-      end_date: null,
-      split_type: null,
-      last_execution_date: null
-    },
-    {
-      transaction_id: 105,
-      account_id: accountId,
-      user_id: 1,
-      objective_id: 2,
-      category: 'Ahorro',
-      amount: 1000,
-      transaction_type: 'saving',
-      concept: null,
-      transaction_date: new Date(2026, 0, 5, 16, 20),
-      isRecurring: false,
-      frequency: null,
-      end_date: null,
-      split_type: null,
-      last_execution_date: null
-    },
-    {
-      transaction_id: 106,
-      account_id: accountId,
-      user_id: 1,
-      objective_id: 1,
-      category: 'Ahorro',
-      amount: 300,
-      transaction_type: 'saving',
-      concept: null,
-      transaction_date: new Date(2026, 0, 3, 12, 0),
-      isRecurring: false,
-      frequency: null,
-      end_date: null,
-      split_type: null,
-      last_execution_date: null
-    },
-    {
-      transaction_id: 107,
-      account_id: accountId,
-      user_id: 1,
-      objective_id: 2,
-      category: 'Ahorro',
-      amount: 750,
-      transaction_type: 'saving',
-      concept: null,
-      transaction_date: new Date(2025, 11, 28, 9, 45),
-      isRecurring: false,
-      frequency: null,
-      end_date: null,
-      split_type: null,
-      last_execution_date: null
-    },
-    {
-      transaction_id: 108,
-      account_id: accountId,
-      user_id: 1,
-      objective_id: 1,
-      category: 'Ahorro',
-      amount: 600,
-      transaction_type: 'saving',
-      concept: null,
-      transaction_date: new Date(2025, 11, 25, 14, 30),
-      isRecurring: false,
-      frequency: null,
-      end_date: null,
-      split_type: null,
-      last_execution_date: null
-    }
-  ];
+  emit('transactionsLoaded', transactions.value);
   
-  transactions.value = mockSavings;
   isLoading.value = false;
-  
-  emit('transactionsLoaded', mockSavings);
-  
-  console.log('✅ ObjectiveSavingsHistory: Aportaciones cargadas:', mockSavings.length);
 };
 
+// Cargar cuando se monta
 onMounted(() => {
   if (props.accountId) {
-    fetchSavings(props.accountId);
+    loadSavings(props.accountId);
   }
 });
 
+// Recargar cuando cambia la cuenta
 watch(() => props.accountId, (newAccountId) => {
   if (newAccountId) {
-    console.log('🔄 ObjectiveSavingsHistory: Cuenta cambiada, recargando...');
-    fetchSavings(newAccountId);
+    loadSavings(newAccountId);
   }
 });
 
@@ -300,6 +103,67 @@ const handleSavingClick = (transactionId: number) => {
   emit('savingClick', transactionId);
 };
 </script>
+
+<template>
+  <!-- Template sin cambios -->
+  <div class="savings-history">
+    <div v-if="isLoading" class="loading-state">
+      <p>Cargando aportaciones...</p>
+    </div>
+
+    <template v-else>
+      <div class="filter-section">
+        <select v-model="selectedObjectiveId" class="objective-filter">
+          <option :value="null">Todos los objetivos</option>
+          <option 
+            v-for="objective in objectives" 
+            :key="objective.objective_id"
+            :value="objective.objective_id"
+          >
+            {{ objective.name }}
+          </option>
+        </select>
+      </div>
+
+      <div class="savings-list">
+        <div
+          v-for="transaction in filteredSavings"
+          :key="transaction.transaction_id"
+          class="saving-item"
+          @click="handleSavingClick(transaction.transaction_id)"
+        >
+          <div class="saving-item__icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+            </svg>
+          </div>
+
+          <div class="saving-item__info">
+            <h4 class="saving-item__title">{{ getObjectiveName(transaction.objective_id) }}</h4>
+            <p class="saving-item__date">{{ formatDate(transaction.transaction_date) }}</p>
+          </div>
+
+          <div class="saving-item__right">
+            <span class="saving-item__amount">
+              +{{ formatAmount(transaction.amount) }}
+            </span>
+            
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="saving-item__arrow">
+              <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+
+        <div v-if="filteredSavings.length === 0" class="empty-state">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+          </svg>
+          <p>No hay aportaciones registradas</p>
+        </div>
+      </div>
+    </template>
+  </div>
+</template>
 
 <style scoped lang="scss">
 @import '@/styles/base/variables.scss';

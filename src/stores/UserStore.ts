@@ -183,33 +183,10 @@ export const useUserStore = defineStore('user', () => {
       } else {
         console.log('❌ Usuario no encontrado')
       }
-
       return user
     } catch (error) {
       console.error('❌ Error verificando usuario:', error)
       return null
-    }
-  }
-
-  /**
-   * Actualizar cuenta
-   */
-  const updateAccount = async (accountId: number, data: Partial<Account>): Promise<void> => {
-    try {
-      await apiService.updateAccount(accountId, data)
-
-      // Actualizar en el estado local
-      const index = accounts.value.findIndex((acc) => acc.account_id === accountId)
-      if (index !== -1) {
-        const currentAccount = accounts.value[index]
-        if (currentAccount) {
-          accounts.value[index] = { ...currentAccount, ...data }
-          console.log('✅ Cuenta actualizada localmente')
-        }
-      }
-    } catch (error) {
-      console.error('❌ Error actualizando cuenta:', error)
-      throw error
     }
   }
 

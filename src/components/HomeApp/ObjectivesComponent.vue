@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div v-if="!isLoading">
     <SectionTitle 
       :title="`| Objetivos (${objectives.length})`"
       :show-add-button="true"
@@ -11,8 +11,8 @@
       <div class="objectives__list">
         <RouterLink 
           v-for="objective in objectives"
-          :key="objective.id"
-          :to="`/home/${objective.id}/contributions`"
+          :key="objective.objective_id"
+          :to="`/home/contributions/${objective.objective_id}`"
           class="objective-card"
         >
           <div class="objective-card__header">
@@ -30,85 +30,89 @@
             <div class="objective-card__progress-bar">
               <div
                 class="objective-card__progress-fill"
-                :style="{ width: `${objective.progress}%` }"
+                :style="{ width: `${calculateProgress(objective)}%` }"
               ></div>
             </div>
-            <span class="objective-card__percentage">{{ objective.progress }}%</span>
+            <span class="objective-card__percentage">{{ calculateProgress(objective) }}%</span>
           </div>
 
           <div class="objective-card__amounts">
-            <span class="objective-card__current">{{ formatCurrency(objective.currentAmount) }}</span>
-            <span class="objective-card__target">{{ formatCurrency(objective.targetAmount) }}</span>
+            <span class="objective-card__current">{{ formatCurrency(objective.current_save) }}</span>
+            <span class="objective-card__target">{{ formatCurrency(objective.target_amount) }}</span>
           </div>
         </RouterLink>
+      </div>
+
+      <div v-if="objectives.length === 0" class="empty-state">
+        <p>No hay objetivos registrados</p>
       </div>
     </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import { RouterLink } from 'vue-router';
+import { useObjectiveStore } from '@/stores/ObjectiveStore';
 import SectionTitle from '@/components/SectionTitle.vue';
+import type { Objective } from '@/types/models';
 
-// Interfaz local (en producción vendrá del backend)
-interface Objective {
-  id: string;
-  name: string;
-  currentAmount: number;
-  targetAmount: number;
-  progress: number;
+interface Props {
+  accountId?: number;
 }
+
+const props = defineProps<Props>();
 
 const emit = defineEmits<{
   addObjective: [];
-  objectivesLoaded: [objectives: Objective[]]; // ✅ Nuevo evento
+  objectivesLoaded: [objectives: Objective[]];
 }>();
 
-// ✅ Los datos ahora están en el HIJO
-const objectives = ref<Objective[]>([]);
+// ✅ Usar el store de Pinia
+const objectiveStore = useObjectiveStore();
 
-// ✅ Simular llamada a la API
-const fetchObjectives = async () => {
-  console.log('📡 ObjectivesComponent: Simulando llamada GET /api/objectives');
+// Estado local
+const objectives = ref<Objective[]>([]);
+const isLoading = ref(false);
+
+// ✅ Cargar objetivos desde el store
+const loadObjectives = async (accountId: number) => {
+  isLoading.value = true;
   
-  // Simular delay de red
-  await new Promise(resolve => setTimeout(resolve, 300));
+  // Asegúrate de que el store devuelve un array (aunque esté vacío)
+  try {
+    objectives.value = await objectiveStore.fetchObjectives(accountId);
+  } catch (error) {
+    console.error("Error cargando objetivos", error);
+    objectives.value = [];
+  }
   
-  // TODO: En producción, esto sería:
-  // const response = await fetch('/api/objectives?account_id=1');
-  // const data = await response.json();
+  if (objectives.value) {
+    emit('objectivesLoaded', objectives.value);
+  }
   
-  // Por ahora, datos simulados
-  const mockData: Objective[] = [
-    {
-      id: '1',
-      name: 'Coche nuevo',
-      currentAmount: 7000,
-      targetAmount: 10000,
-      progress: 70
-    },
-    {
-      id: '2',
-      name: 'Entrada Casa',
-      currentAmount: 3756,
-      targetAmount: 20000,
-      progress: 20
-    }
-  ];
-  
-  objectives.value = mockData;
-  
-  // ✅ Emitir los datos al padre
-  emit('objectivesLoaded', mockData);
-  
-  console.log('✅ ObjectivesComponent: Objetivos cargados:', mockData);
+  isLoading.value = false;
 };
 
-// ✅ Cargar datos cuando el componente se monta
+// Cargar cuando se monta
 onMounted(() => {
-  fetchObjectives();
+  if (props.accountId) {
+    loadObjectives(props.accountId);
+  }
 });
+
+// Recargar cuando cambia la cuenta
+watch(() => props.accountId, (newAccountId) => {
+  if (newAccountId) {
+    loadObjectives(newAccountId);
+  }
+});
+
+// ✅ Calcular progreso
+const calculateProgress = (objective: Objective): number => {
+  if (objective.target_amount === 0) return 0;
+  return Math.round((objective.current_save / objective.target_amount) * 100);
+};
 
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('es-ES', {
@@ -123,9 +127,19 @@ const handleAddObjective = () => {
   emit('addObjective');
 };
 </script>
-
 <style scoped lang="scss">
 @import '@/styles/base/variables.scss';
+
+.loading-state {
+  padding: 40px 20px;
+  text-align: center;
+  
+  p {
+    margin: 0;
+    font-size: 14px;
+    color: $color-text-gray;
+  }
+}
 
 .objectives {
   padding: 0 $section-margin-horizontal 1.5rem;

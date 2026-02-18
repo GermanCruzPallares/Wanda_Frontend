@@ -161,7 +161,6 @@ export const useAccountStore = defineStore('account', () => {
     // Estado
     accountCache,
     isCreatingAccount,
-
     // Actions principales
     fetchAccount,
     fetchAccountMembers,

@@ -257,7 +257,6 @@ export const useObjectiveStore = defineStore('objective', () => {
   return {
     // Estado
     objectivesByAccount,
-
     // Métodos
     fetchObjectives,
     fetchObjectiveById,

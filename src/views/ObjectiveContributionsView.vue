@@ -1,205 +1,146 @@
 <template>
   <div class="objective-contributions-page">
-    <!-- AsideNav para desktop -->
     <AsideNav 
       :active-item="activeMenuItem"
-      :accounts="accounts"
+      :account-id="activeAccount?.account_id"
       @navigate="handleNavigate"
-      @avatar-click="handleAvatarClick"
     />
 
-    <!-- Header con navegación (solo móvil) -->
     <HeaderNav 
       title="Historial de Aportaciones" 
       @back="handleBack"
       class="mobile-only"
     />
 
-    <!-- Título para desktop -->
     <div class="desktop-header">
       <h1 class="page-title">Historial de Aportaciones</h1>
     </div>
 
-    <!-- Contenido principal -->
     <main class="contributions-content">
-      <ObjectiveSavingsHistory
-        :account-id="activeAccount?.account_id"
+      <ContributionHistory
+        v-if="activeAccount?.account_id"
+        :account-id="activeAccount.account_id"
         :objectives="objectives"
         :initial-selected-objective="initialObjectiveId"
         @saving-click="handleSavingClick"
         @transactions-loaded="handleTransactionsLoaded"
       />
+      
+      <div v-else class="loading-container">
+        <p>Cargando datos de la cuenta...</p>
+      </div>
     </main>
 
-    <!-- Bottom Nav solo en móvil -->
-    <BottomNav class="mobile-only" />
-
-    <!-- Modal de cambio de cuenta -->
-    <AccountSwitcherModal
-      :is-open="isAccountModalOpen"
-      :accounts="accounts"
-      :current-user="currentUser"
-      @close="handleCloseModal"
-      @select-account="handleSelectAccount"
-      @create-joint-account="handleCreateJointAccount"
-    />
+  
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import { useObjectiveStore } from '@/stores/ObjectiveStore';
+import { useUserStore } from '@/stores/UserStore';
 import HeaderNav from '@/components/Navs/HeaderNav.vue';
-import ObjectiveSavingsHistory from '@/components/HomeApp/ContributionHistory.vue';
 import BottomNav from '@/components/Navs/BottomNav.vue';
 import AsideNav from '@/components/Navs/AsideNav.vue';
-import AccountSwitcherModal from '@/components/Modals/AccountSwitcherModal.vue';
-import type { Transaction, Objective, AccountUI, User } from '@/types/models';
+import ContributionHistory from '@/components/HomeApp/ContributionHistory.vue';
+import type { Transaction, Objective, AccountUI } from '@/types/models';
 
 const router = useRouter();
 const route = useRoute();
+const objectiveStore = useObjectiveStore();
+const userStore = useUserStore();
 
-// Obtener el ID del objetivo desde la ruta
-const objectiveIdParam = computed(() => route.params.objectiveId as string);
+// ==================== PARAMS DE RUTA ====================
 
-// Convertir a número si es necesario (o null para "todos")
 const initialObjectiveId = computed(() => {
-  const id = objectiveIdParam.value;
-  console.log('Objective ID from route:', id);
-  return id && id !== 'all' ? parseInt(id) : null;
+  const param = route.params.objectiveId;
+  const idStr = Array.isArray(param) ? param[0] : param;
+  if (!idStr || idStr === 'all') return null;
+  const parsed = parseInt(idStr);
+  return isNaN(parsed) ? null : parsed;
 });
 
-// Estado del menú
+// ==================== ESTADO UI LOCAL ====================
+
 const activeMenuItem = ref('libro');
+const objectives = ref<Objective[]>([]);
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const transactions = ref<Transaction[]>([]);
 
-// Usuario actual (debería venir del sistema de autenticación)
-const currentUser = ref<User>({
-  user_id: 1,
-  name: 'Clara',
-  email: 'clara@wandaapp.com'
+// ==================== COMPUTED (User Store) ====================
+
+// Cuentas con formato AccountUI
+const accounts = computed<AccountUI[]>(() => {
+  return userStore.accounts.map(account => ({
+    ...account,
+    isActive: account.account_id === userStore.activeAccountId
+  }));
 });
 
-// Estado de cuentas
-const accounts = ref<AccountUI[]>([
-  {
-    account_id: 1,
-    name: 'Clara',
-    account_type: 'personal',
-    amount: 13789.37,
-    weekly_budget: 200,
-    monthly_budget: 2000,
-    account_picture_url: 'https://i.pravatar.cc/150?img=5',
-    creation_date: new Date(),
-    isActive: true
-  }
-]);
-
+// Cuenta activa
 const activeAccount = computed(() => {
   return accounts.value.find(acc => acc.isActive);
 });
 
-const isAccountModalOpen = ref(false);
+// ==================== ACTIONS ====================
 
-// ✅ Objetivos vacíos - vendrán del hijo
-const objectives = ref<Objective[]>([]);
+const loadObjectives = async (accountId: number) => {
+  try {
+    objectives.value = await objectiveStore.fetchObjectives(accountId);
+  } catch (error) {
+    console.error('Error cargando objetivos:', error);
+  }
+};
 
-// ✅ Transacciones vacías - vendrán del hijo
-const transactions = ref<Transaction[]>([]);
-
-// ✅ Handler para recibir transacciones
 const handleTransactionsLoaded = (loadedTransactions: Transaction[]) => {
-  console.log('💰 ObjectiveContributionsView: Aportaciones recibidas:', loadedTransactions.length);
   transactions.value = loadedTransactions;
 };
 
-// Cargar objetivos (podrían venir de ObjectivesComponent o hacerse aquí)
-const fetchObjectives = async () => {
-  console.log('📡 Cargando objetivos...');
-  
-  // Simulación - en producción: GET /api/accounts/{accountId}/objectives
-  const mockObjectives: Objective[] = [
-    {
-      objective_id: 1,
-      account_id: 1,
-      name: 'Coche nuevo',
-      target_amount: 10000,
-      current_save: 7500,
-      deadline: new Date(2026, 11, 31),
-      objective_picture_url: ''
-    },
-    {
-      objective_id: 2,
-      account_id: 1,
-      name: 'Entrada Casa',
-      target_amount: 50000,
-      current_save: 15000,
-      deadline: new Date(2028, 5, 30),
-      objective_picture_url: ''
-    }
-  ];
-  
-  objectives.value = mockObjectives;
-};
-
-// Funciones de navegación
-const handleBack = () => {
-  router.push('/home');
-};
+// Navegación
+const handleBack = () => router.push('/home');
 
 const handleNavigate = (itemId: string) => {
   activeMenuItem.value = itemId;
-  console.log('Navegando a:', itemId);
-  if (itemId === 'inicio') {
-    router.push('/home');
-  }
+  if (itemId === 'inicio') router.push('/home');
 };
 
 const handleSavingClick = (transactionId: number) => {
   console.log('Aportación clickeada:', transactionId);
-  // Aquí podrías abrir un modal con detalles de la transacción
 };
 
-// Funciones de cuenta
-const handleAvatarClick = () => {
-  isAccountModalOpen.value = true;
-};
+// ==================== LIFECYCLE ====================
 
-const handleCloseModal = () => {
-  isAccountModalOpen.value = false;
-};
+onMounted(async () => {
+  // 1. Verificar autenticación
+  if (!userStore.isAuthenticated) {
+    router.push('/login');
+    return;
+  }
 
-const handleSelectAccount = (accountId: number) => {
-  accounts.value = accounts.value.map(acc => ({
-    ...acc,
-    isActive: acc.account_id === accountId
-  }));
-  console.log('Cuenta seleccionada:', accountId);
-};
+  // 2. Cargar datos del usuario si es necesario
+  if (!userStore.currentUser && userStore.userId) {
+    try {
+      await userStore.loadUserData(userStore.userId);
+    } catch (error) {
+      console.error('❌ Error cargando datos:', error);
+      router.push('/login');
+    }
+  }
 
-const handleCreateJointAccount = (accountName: string, userEmails: string[]) => {
-  console.log('Crear cuenta conjunta:', accountName, userEmails);
-  
-  const newAccount: AccountUI = {
-    account_id: accounts.value.length + 1,
-    name: accountName,
-    account_type: 'joint',
-    amount: 0,
-    weekly_budget: 0,
-    monthly_budget: 0,
-    account_picture_url: `https://i.pravatar.cc/150?img=${accounts.value.length + 1}`,
-    creation_date: new Date(),
-    isActive: false
-  };
-  
-  accounts.value.push(newAccount);
-  console.log('Nueva cuenta creada:', newAccount);
-};
+  // 3. Cargar objetivos si ya tenemos cuenta activa
+  if (activeAccount.value?.account_id) {
+    loadObjectives(activeAccount.value.account_id);
+  }
+});
 
-// Cargar al montar
-onMounted(() => {
-  console.log('Route params:', route.params);
-  console.log('Initial objective ID:', initialObjectiveId.value);
-  fetchObjectives();
+// 4. Recargar objetivos cuando cambia la cuenta activa
+// (El cambio de cuenta ahora lo gestiona AsideNav modificando el store)
+watch(() => activeAccount.value?.account_id, (newAccountId) => {
+  if (newAccountId) {
+    console.log('🔄 Cambio de cuenta detectado:', newAccountId);
+    loadObjectives(newAccountId);
+  }
 });
 </script>
 
@@ -237,6 +178,16 @@ onMounted(() => {
     margin-left: 240px;
     padding-top: 20px;
     padding-bottom: 40px;
+  }
+}
+
+.loading-container {
+  padding: 40px;
+  text-align: center;
+  color: $color-text-gray;
+  
+  @media (min-width: 768px) {
+    margin-left: 240px;
   }
 }
 

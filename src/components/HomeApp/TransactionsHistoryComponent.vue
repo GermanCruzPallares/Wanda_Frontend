@@ -1,13 +1,9 @@
 <template>
-  <div>
+  <!-- ✅ Solo renderizar cuando NO está cargando -->
+  <div v-if="!isLoading">
     <SectionTitle title="| Historial" />
 
     <section class="transactions-history">
-      <!-- Estado de carga -->
-      <div v-if="isLoading" class="loading-state">
-        <p>Cargando transacciones...</p>
-      </div>
-
       <!-- Transacciones agrupadas por fecha -->
       <div
         v-else
@@ -65,6 +61,11 @@
         </div>
       </div>
 
+      <!-- Mensaje si no hay transacciones -->
+      <div v-if="transactions.length === 0" class="empty-state">
+        <p>No hay transacciones registradas</p>
+      </div>
+
       <!-- Botón Ver más -->
       <button v-if="canLoadMore" class="load-more-btn" @click="loadMore">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -101,7 +102,6 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  accountId: 1,
   initialLimit: 5,
   loadMoreIncrement: 10,
 })
@@ -414,6 +414,7 @@ const handleTransactionClick = (transactionId: number) => {
 </script>
 
 <style scoped lang="scss">
+/* Estilos sin cambios */
 @import '@/styles/base/variables.scss';
 
 .transactions-history {

@@ -3,13 +3,13 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/UserStore';
 import BottomNav from '@/components/Navs/BottomNav.vue';
-import BalanceComponent from '@/components/HomeApp/BalanceComponent.vue';
-import CardComponent from '@/components/HomeApp/CardComponent.vue';
-import ObjectivesComponent from '@/components/HomeApp/ObjectivesComponent.vue';
-import TransactionsHistoryComponent from '@/components/HomeApp/TransactionsHistoryComponent.vue';
 import TopNav from '@/components/Navs/TopNav.vue';
 import AsideNav from '@/components/Navs/AsideNav.vue';
-import type { AccountUI, Transaction, Objective } from '@/types/models';
+import AccountsComponent from '@/components/Profile/AccountsComponent.vue';
+import BudgetComponent from '@/components/Profile/BudgetComponent.vue';
+import ObjContribution from '@/components/Profile/ObjContribution.vue';
+import RecurringTransactionComponent from '@/components/Profile/RecurringTransactionComponent.vue';
+import type { AccountUI } from '@/types/models';
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -30,15 +30,13 @@ const accounts = computed<AccountUI[]>(() => {
 // Cuenta activa
 const activeAccount = computed(() => {
   const active = accounts.value.find(acc => acc.isActive);
-  console.log('🔍 HomeView: activeAccount =', active); 
+  console.log('🔍 ProfileView: activeAccount =', active); 
   return active;
 });
 
 // ==================== ESTADO LOCAL ====================
 
-const objectives = ref<Objective[]>([]);
-const transactions = ref<Transaction[]>([]);
-const activeMenuItem = ref('inicio');
+const activeMenuItem = ref('perfil');
 
 // ==================== LIFECYCLE ====================
 
@@ -63,30 +61,11 @@ onMounted(async () => {
 
 // ==================== HANDLERS ====================
 
-const handleObjectivesLoaded = (loadedObjectives: Objective[]) => {
-  console.log('🎯 HomeView: Objetivos recibidos:', loadedObjectives);
-  objectives.value = loadedObjectives;
-};
-
-const handleTransactionsLoaded = (loadedTransactions: Transaction[]) => {
-  console.log('💳 HomeView: Transacciones recibidas:', loadedTransactions.length);
-  transactions.value = loadedTransactions;
-};
-
-
-
-const handleEditCard = () => {
-  console.log('Editar tarjeta');
-};
-
-const handleAddObjective = () => {
-  console.log('Añadir objetivo');
-};
-
 const handleTransactionClick = (transactionId: number) => {
   console.log('Transacción clickeada:', transactionId);
+  // Aquí puedes navegar a una vista de detalle si lo necesitas
+  // router.push(`/transactions/${transactionId}`);
 };
-
 
 </script>
 
@@ -101,36 +80,37 @@ const handleTransactionClick = (transactionId: number) => {
     class="mobile-only"
   />
   
-  <main class="home-content">
-    <div class="home-content__header">
-      <CardComponent 
-        :account-id="activeAccount?.account_id"
-        :user-name="currentUser?.name"
-        @edit="handleEditCard"
-      />
+  <main class="profile-content">
+    <div class="profile-content__header">
+      <AccountsComponent />
     </div>
 
-    <div class="home-content__grid">
-      <div class="home-content__left">
-        <BalanceComponent
-          :account-id="activeAccount?.account_id"
+    <div class="profile-content__grid">
+      <div class="profile-content__left">
+        <BudgetComponent
+          v-if="activeAccount"
+          :account-id="activeAccount.account_id"
         />
         
-       
-        <ObjectivesComponent
-          :account-id="activeAccount?.account_id"
-          @add-objective="handleAddObjective"
-          @objectives-loaded="handleObjectivesLoaded"
+        <ObjContribution
+          v-if="activeAccount"
+          :account-id="activeAccount.account_id"
         />
       </div>
 
-      <div class="home-content__right">
-        <TransactionsHistoryComponent
-          :account-id="activeAccount?.account_id"
-          :initial-limit="5"
-          :load-more-increment="10"
+      <div class="profile-content__right">
+        <RecurringTransactionComponent
+          v-if="activeAccount"
+          :account-id="activeAccount.account_id"
+          type="expense"
           @transaction-click="handleTransactionClick"
-          @transactions-loaded="handleTransactionsLoaded"
+        />
+
+        <RecurringTransactionComponent
+          v-if="activeAccount"
+          :account-id="activeAccount.account_id"
+          type="income"
+          @transaction-click="handleTransactionClick"
         />
       </div>
     </div>
@@ -141,7 +121,7 @@ const handleTransactionClick = (transactionId: number) => {
 </template>
 
 <style scoped lang="scss">
-.home-content {
+.profile-content {
   min-height: 100vh;
   padding-top: 100px;
   padding-bottom: 80px;
@@ -160,7 +140,7 @@ const handleTransactionClick = (transactionId: number) => {
   &__grid {
     display: flex;
     flex-direction: column;
-    gap: 0;
+    gap: 20px;
 
     @media (min-width: 768px) {
       display: grid;
@@ -175,10 +155,6 @@ const handleTransactionClick = (transactionId: number) => {
     display: flex;
     flex-direction: column;
     gap: 20px;
-
-    @media (min-width: 768px) {
-      gap: 20px;
-    }
   }
 }
 
