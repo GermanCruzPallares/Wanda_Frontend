@@ -1,19 +1,20 @@
-import type { User } from '@/types/models'
+import type { User } from '@/types/models';
 
 interface LoginResponse {
-  token: string
-  userId: number
+  token: string;
+  userId: number;
 }
 
 interface LoginCredentials {
-  email: string
-  password: string
+  email: string;
+  password: string;
 }
 
 class AuthService {
-  private readonly TOKEN_KEY = 'wanda_auth_token'
-  private readonly USER_ID_KEY = 'wanda_user_id'
-  private readonly API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7085/api'
+  private readonly TOKEN_KEY = 'wanda_auth_token';
+  private readonly USER_ID_KEY = 'wanda_user_id';
+  private readonly API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7085/api';
+
 
   /**
    * Realizar login y guardar token + userId
@@ -26,25 +27,25 @@ class AuthService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(credentials),
-      })
+      });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: 'Error al iniciar sesión' }))
-        throw new Error(error.message || 'Usuario o contraseña incorrectos')
+        const error = await response.json().catch(() => ({ message: 'Error al iniciar sesión' }));
+        throw new Error(error.message || 'Usuario o contraseña incorrectos');
       }
 
-      const data: LoginResponse = await response.json()
+      const data: LoginResponse = await response.json();
 
       // Guardar token y userId
-      this.setToken(data.token)
-      this.setUserId(data.userId)
+      this.setToken(data.token);
+      this.setUserId(data.userId);
 
-      console.log('✅ Login exitoso. UserId:', data.userId)
+      console.log('✅ Login exitoso. UserId:', data.userId);
 
-      return data.userId
+      return data.userId;
     } catch (error) {
-      console.error('❌ Error en login:', error)
-      throw error
+      console.error('❌ Error en login:', error);
+      throw error;
     }
   }
 
@@ -60,21 +61,21 @@ class AuthService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(userData),
-      })
+      });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: 'Error al registrarse' }))
-        throw new Error(error.message || 'Error al registrarse')
+        const error = await response.json().catch(() => ({ message: 'Error al registrarse' }));
+        throw new Error(error.message || 'Error al registrarse');
       }
 
       // Luego hacer login automáticamente
       return await this.login({
         email: userData.email,
-        password: userData.password,
-      })
+        password: userData.password
+      });
     } catch (error) {
-      console.error('❌ Error en registro:', error)
-      throw error
+      console.error('❌ Error en registro:', error);
+      throw error;
     }
   }
 
@@ -82,57 +83,57 @@ class AuthService {
    * Cerrar sesión
    */
   logout(): void {
-    localStorage.removeItem(this.TOKEN_KEY)
-    localStorage.removeItem(this.USER_ID_KEY)
-    window.location.href = '/login'
+    localStorage.removeItem(this.TOKEN_KEY);
+    localStorage.removeItem(this.USER_ID_KEY);
+    window.location.href = '/login';
   }
 
   /**
    * Obtener token JWT
    */
   getToken(): string | null {
-    return localStorage.getItem(this.TOKEN_KEY)
+    return localStorage.getItem(this.TOKEN_KEY);
   }
 
   /**
    * Guardar token
    */
   private setToken(token: string): void {
-    localStorage.setItem(this.TOKEN_KEY, token)
+    localStorage.setItem(this.TOKEN_KEY, token);
   }
 
   /**
    * Obtener userId actual
    */
   getUserId(): number | null {
-    const userId = localStorage.getItem(this.USER_ID_KEY)
-    return userId ? parseInt(userId) : null
+    const userId = localStorage.getItem(this.USER_ID_KEY);
+    return userId ? parseInt(userId) : null;
   }
 
   /**
    * Guardar userId
    */
   private setUserId(userId: number): void {
-    localStorage.setItem(this.USER_ID_KEY, userId.toString())
+    localStorage.setItem(this.USER_ID_KEY, userId.toString());
   }
 
   /**
    * Verificar si el usuario está autenticado
    */
   isAuthenticated(): boolean {
-    return !!this.getToken() && !!this.getUserId()
+    return !!this.getToken() && !!this.getUserId();
   }
 
   /**
    * Obtener headers con autenticación
    */
   getAuthHeaders(): HeadersInit {
-    const token = this.getToken()
+    const token = this.getToken();
     return {
       'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    }
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+    };
   }
 }
 
-export const authService = new AuthService()
+export const authService = new AuthService();
