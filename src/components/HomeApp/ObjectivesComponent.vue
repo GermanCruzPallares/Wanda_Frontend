@@ -8,6 +8,14 @@
     />
     
     <section class="objectives">
+
+      <CreateObjectiveModal
+      :is-open="isCreateModalOpen"
+      :account-id="props.accountId"
+      @close="isCreateModalOpen = false"
+      @created="handleObjectiveCreated"
+      />
+
       <div class="objectives__list">
         <RouterLink 
           v-for="objective in objectives"
@@ -56,9 +64,16 @@ import { RouterLink } from 'vue-router';
 import { useObjectiveStore } from '@/stores/ObjectiveStore';
 import SectionTitle from '@/components/SectionTitle.vue';
 import type { Objective } from '@/types/models';
+import CreateObjectiveModal from '@/components/Modals/CreateObjectiveModal.vue';
+import { useRouter } from 'vue-router';
+
+
+const router = useRouter();
+const isCreateModalOpen = ref(false);
+
 
 interface Props {
-  accountId?: number;
+  accountId: number;
 }
 
 const props = defineProps<Props>();
@@ -67,6 +82,19 @@ const emit = defineEmits<{
   addObjective: [];
   objectivesLoaded: [objectives: Objective[]];
 }>();
+
+
+const handleAddObjective = () => {
+  isCreateModalOpen.value = true;
+};
+
+const handleObjectiveCreated = async () => {
+  // El store ya invalida la caché internamente al crear
+  if (props.accountId) await loadObjectives(props.accountId);
+    router.push('/home');
+};
+
+
 
 // ✅ Usar el store de Pinia
 const objectiveStore = useObjectiveStore();
@@ -123,9 +151,6 @@ const formatCurrency = (amount: number): string => {
   }).format(amount);
 };
 
-const handleAddObjective = () => {
-  emit('addObjective');
-};
 </script>
 <style scoped lang="scss">
 @import '@/styles/base/variables.scss';
