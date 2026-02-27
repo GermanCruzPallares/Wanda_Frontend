@@ -60,8 +60,8 @@ const handleAddObjective = () => {
 };
 
 const handleObjectiveCreated = async () => {
+  isCreateModalOpen.value = false;
   if (props.accountId) await loadObjectives(props.accountId);
-  router.push('/profile');
 };
 
 const props = defineProps<Props>();
