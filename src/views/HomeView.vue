@@ -5,6 +5,7 @@ import { useUserStore } from '@/stores/UserStore';
 import BottomNav from '@/components/Navs/BottomNav.vue';
 import BalanceComponent from '@/components/HomeApp/BalanceComponent.vue';
 import CardComponent from '@/components/HomeApp/CardComponent.vue';
+import JointCardComponent from '@/components/HomeApp/JointCardComponent.vue';
 import ObjectivesComponent from '@/components/HomeApp/ObjectivesComponent.vue';
 import TransactionsHistoryComponent from '@/components/HomeApp/TransactionsHistoryComponent.vue';
 import TopNav from '@/components/Navs/TopNav.vue';
@@ -16,10 +17,8 @@ const userStore = useUserStore();
 
 // ==================== COMPUTED ====================
 
-// Usuario actual desde el store
 const currentUser = computed(() => userStore.currentUser);
 
-// Cuentas con formato AccountUI (agregando isActive)
 const accounts = computed<AccountUI[]>(() => {
   return userStore.accounts.map(account => ({
     ...account,
@@ -27,12 +26,14 @@ const accounts = computed<AccountUI[]>(() => {
   }));
 });
 
-// Cuenta activa
 const activeAccount = computed(() => {
-  const active = accounts.value.find(acc => acc.isActive);
-  console.log('🔍 HomeView: activeAccount =', active); 
-  return active;
+  return accounts.value.find(acc => acc.isActive);
 });
+
+// Determina si la cuenta activa es conjunta
+const isJointAccount = computed(() =>
+  activeAccount.value?.account_type === 'joint'
+);
 
 // ==================== ESTADO LOCAL ====================
 
@@ -43,14 +44,11 @@ const activeMenuItem = ref('inicio');
 // ==================== LIFECYCLE ====================
 
 onMounted(async () => {
-  // Verificar autenticación
   if (!userStore.isAuthenticated) {
-    console.warn('⚠️ Usuario no autenticado, redirigiendo a login...');
     router.push('/login');
     return;
   }
 
-  // Si el store no tiene datos cargados, cargarlos
   if (!userStore.currentUser && userStore.userId) {
     try {
       await userStore.loadUserData(userStore.userId);
@@ -64,16 +62,12 @@ onMounted(async () => {
 // ==================== HANDLERS ====================
 
 const handleObjectivesLoaded = (loadedObjectives: Objective[]) => {
-  console.log('🎯 HomeView: Objetivos recibidos:', loadedObjectives);
   objectives.value = loadedObjectives;
 };
 
 const handleTransactionsLoaded = (loadedTransactions: Transaction[]) => {
-  console.log('💳 HomeView: Transacciones recibidas:', loadedTransactions.length);
   transactions.value = loadedTransactions;
 };
-
-
 
 const handleEditCard = () => {
   console.log('Editar tarjeta');
@@ -86,8 +80,6 @@ const handleAddObjective = () => {
 const handleTransactionClick = (transactionId: number) => {
   console.log('Transacción clickeada:', transactionId);
 };
-
-
 </script>
 
 <template>
@@ -103,11 +95,21 @@ const handleTransactionClick = (transactionId: number) => {
   
   <main class="home-content">
     <div class="home-content__header">
-      <CardComponent 
+
+      <!-- Card conjunta -->
+      <JointCardComponent
+        v-if="isJointAccount && activeAccount?.account_id"
+        :account-id="activeAccount.account_id"
+      />
+
+      <!-- Card personal -->
+      <CardComponent
+        v-else
         :account-id="activeAccount?.account_id"
         :user-name="currentUser?.name"
         @edit="handleEditCard"
       />
+
     </div>
 
     <div class="home-content__grid">
@@ -116,7 +118,6 @@ const handleTransactionClick = (transactionId: number) => {
           :account-id="activeAccount?.account_id"
         />
         
-       
         <ObjectivesComponent
           v-if="activeAccount?.account_id"
           :account-id="activeAccount?.account_id"
@@ -138,7 +139,6 @@ const handleTransactionClick = (transactionId: number) => {
   </main>
   
   <BottomNav class="mobile-only" />
-
 </template>
 
 <style scoped lang="scss">
