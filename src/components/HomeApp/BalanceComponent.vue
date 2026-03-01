@@ -107,7 +107,7 @@
     <InfoModal
         :is-open="isInfoModalOpen"
         title="¿ Como funciona ?"
-        content='Comparamos tu gasto actual con el tiempo transcurrido. Si la barra de gasto está detrás del indicador "Hoy", ¡vas genial! Si está adelante, es momento de ajustar un poco.'
+        content='Comparamos tu gasto semanal con el tiempo transcurrido. Los gastos frecuentes y las aportaciones a objetivos no se incluyen en este cálculo, ya que son compromisos fijos. Si la barra de gasto está detrás del indicador "Hoy", ¡vas genial! Si está adelante, es momento de ajustar un poco.'
         @close="closeInfoModal"
     />    
   </div>
@@ -158,14 +158,13 @@ const closeInfoModal = () => {
   isInfoModalOpen.value = false;
 };
 
-// ✅ NUEVA FUNCIÓN: Calcular gastos reales de la semana actual
 const calculateCurrentWeekExpenses = (accountId: number): number => {
   const transactions = transactionStore.getTransactionsFromCache(accountId);
   if (!transactions) return 0;
   
   const now = new Date();
   const currentDay = now.getDay();
-  const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay; // Lunes de esta semana
+  const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
   
   const monday = new Date(now);
   monday.setDate(now.getDate() + mondayOffset);
@@ -175,18 +174,17 @@ const calculateCurrentWeekExpenses = (accountId: number): number => {
   sunday.setDate(monday.getDate() + 6);
   sunday.setHours(23, 59, 59, 999);
   
-  // Sumar solo gastos (expenses) de esta semana
   return transactions
     .filter(t => {
       const tDate = new Date(t.transaction_date);
       return t.transaction_type === 'expense' && 
+             !t.isRecurring &&            
              tDate >= monday && 
              tDate <= sunday;
     })
     .reduce((sum, t) => sum + t.amount, 0);
 };
 
-// ✅ Cargar cuenta desde el store
 const loadAccount = async (accountId: number) => {
   isLoading.value = true;
   
