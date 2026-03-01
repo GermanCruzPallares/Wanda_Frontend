@@ -37,11 +37,11 @@ class AuthService {
       this.setToken(data.token);
       this.setUserId(data.userId);
 
-      console.log('✅ Login exitoso. UserId:', data.userId);
+      console.log('Login exitoso. UserId:', data.userId);
 
       return data.userId;
     } catch (error) {
-      console.error('❌ Error en login:', error);
+      console.error('Error en login:', error);
       throw error;
     }
   }
@@ -68,7 +68,7 @@ class AuthService {
         password: userData.password
       });
     } catch (error) {
-      console.error('❌ Error en registro:', error);
+      console.error('Error en registro:', error);
       throw error;
     }
   }

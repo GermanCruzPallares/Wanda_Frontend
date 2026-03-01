@@ -48,7 +48,7 @@ class ApiService {
    const contentType = response.headers.get('content-type');
   if (!contentType || !contentType.includes('application/json')) {
     const textResponse = await response.text();
-    console.log('✅ Respuesta de texto:', textResponse);
+    console.log('Respuesta de texto:', textResponse);
     return {} as T; 
   }
 
@@ -77,7 +77,7 @@ class ApiService {
       let errorDetails = 'Error desconocido';
       try {
         const errorBody = await response.text();
-        console.error('❌ Response body:', errorBody);
+        console.error('Response body:', errorBody);
         
         try {
           const errorJson = JSON.parse(errorBody);
@@ -86,7 +86,7 @@ class ApiService {
           errorDetails = errorBody;
         }
       } catch (e) {
-        console.error('❌ No se pudo leer el cuerpo de la respuesta:', e);
+        console.error('No se pudo leer el cuerpo de la respuesta:', e);
       }
       
       throw new Error(`Error ${response.status}: ${errorDetails}`);

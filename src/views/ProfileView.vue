@@ -97,7 +97,7 @@ const loadRecurringData = async (accountId: number) => {
       splits.value = [];
     }
   } catch (error) {
-    console.error('❌ Error cargando transacciones recurrentes:', error);
+    console.error('Error cargando transacciones recurrentes:', error);
     allTransactions.value = [];
   }
 
@@ -116,7 +116,7 @@ onMounted(async () => {
     try {
       await userStore.loadUserData(userStore.userId);
     } catch (error) {
-      console.error('❌ Error cargando datos:', error);
+      console.error('Error cargando datos:', error);
       router.push('/login');
       return;
     }

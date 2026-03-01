@@ -1,5 +1,3 @@
-// Tipos que coinciden exactamente con el backend
-
 export interface User {
   user_id: number;
   name: string;
@@ -24,7 +22,7 @@ export interface UserAccount {
   joined_at: Date | string;
 }
 
-// Tipo extendido SOLO para la UI
+
 export interface AccountUI extends Account {
   isActive: boolean;
 }
