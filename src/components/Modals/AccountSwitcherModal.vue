@@ -95,15 +95,25 @@ const handleSelectAccount = (accountId: number) => {
 const handleAddAccount = () => { isJointAccountModalOpen.value = true; };
 const handleCloseJointAccountModal = () => { isJointAccountModalOpen.value = false; };
 
-const handleCreateJointAccount = (accountName: string, userIds: number[]) => {
-  emit('createAccount', accountName, userIds);
-  isJointAccountModalOpen.value = false;
-  handleClose();
+const handleCreateJointAccount = async (accountName: string, userIds: number[]) => {
+  try {
+
+    await accountStore.createJointAccount({
+      name: accountName,
+      userIds: userIds
+    });
+    await userStore.refreshAccounts(true);
+
+    isJointAccountModalOpen.value = false;
+    handleClose();
+    router.push('/home');
+
+  } catch (error) {
+    console.error('❌ Error creando cuenta conjunta:', error);
+  }
 };
 
-// ✅ Subtítulo de cada cuenta:
-// - Personal → nombre del usuario logueado
-// - Conjunta → nombres de los miembros
+
 const getAccountSubtitle = (account: AccountWithUsers): string => {
   if (account.account_type === 'personal') {
     return props.currentUser.name;

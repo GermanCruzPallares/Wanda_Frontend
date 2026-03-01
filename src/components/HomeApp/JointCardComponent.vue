@@ -30,11 +30,6 @@ const loadData = async (accountId: number) => {
     accountStore.fetchAccount(accountId),
     accountStore.fetchAccountMembers(accountId),
   ]);
-
-  console.log('🏦 fetchedAccount:', JSON.stringify(fetchedAccount));
-  console.log('👥 fetchedMembers:', JSON.stringify(fetchedMembers));
-  console.log('🔢 accountId recibido:', accountId);
-
   account.value = fetchedAccount;
   members.value = fetchedMembers;
 
@@ -52,7 +47,7 @@ const loadData = async (accountId: number) => {
     .filter(t => {
       const d = new Date(t.transaction_date);
       return (
-        t.transaction_type === 'expense' &&
+        t.transaction_type === 'expense' || t.transaction_type === 'saving' &&
         d.getMonth() === currentMonth &&
         d.getFullYear() === currentYear
       );
@@ -102,14 +97,13 @@ const getMemberAvatar = (_user: User): string => getAvatarDataUrl('personal');
         :key="member.user_id"
         class="joint-member"
       >
-        <!-- Avatar -->
+      
         <img
           :src="getMemberAvatar(member)"
           :alt="member.name"
           class="joint-member__avatar"
         />
 
-        <!-- Bloque derecho: importe + barra (alineados con el avatar) -->
         <div class="joint-member__right">
           <div class="joint-member__top">
             <span class="joint-member__amount">{{ getExpense(member.user_id) }} €</span>
@@ -185,7 +179,7 @@ const getMemberAvatar = (_user: User): string => getAvatarDataUrl('personal');
 }
 
 .joint-member {
-  // Avatar a la izquierda, bloque derecho ocupa el resto
+
   display: flex;
   align-items: center;
   gap: 14px;
@@ -198,9 +192,6 @@ const getMemberAvatar = (_user: User): string => getAvatarDataUrl('personal');
     flex-shrink: 0;
     border: 2px solid rgba(255, 255, 255, 0.5);
   }
-
-  // El bloque derecho ocupa todo el espacio disponible
-  // → la barra arranca justo donde arranca el importe, no donde el avatar
   &__right {
     flex: 1;
     display: flex;
