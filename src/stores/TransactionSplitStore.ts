@@ -1,4 +1,3 @@
-
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
 import type { TransactionSplit } from '@/types/models';
@@ -29,6 +28,35 @@ export const useTransactionSplitStore = defineStore('transactionSplit', () => {
   };
 
   // ==================== API CALLS ====================
+
+  /**
+   * ✅ NUEVO: Obtener todos los splits de una cuenta
+   * GET /api/accounts/{accountId}/transactionSplits
+   * Usado en el historial conjunto para saber quién participa en cada gasto divided
+   */
+  const fetchAccountSplits = async (accountId: number): Promise<TransactionSplit[]> => {
+    try {
+      const url = `${API_BASE_URL}/accounts/${accountId}/transactionSplits`;
+      console.log(`📡 GET ${url}`);
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: getAuthHeaders()
+      });
+
+      if (response.status === 401) { handleUnauthorized(); return []; }
+      if (response.status === 404) return [];
+      if (!response.ok) throw new Error(`Error ${response.status}`);
+
+      const splits: TransactionSplit[] = await response.json();
+      console.log(`✅ ${splits.length} splits de cuenta cargados`);
+      return splits;
+
+    } catch (error) {
+      console.error('❌ Error fetchAccountSplits:', error);
+      return [];
+    }
+  };
 
   /**
    * Obtener splits del usuario con filtro opcional de estado
@@ -156,6 +184,7 @@ export const useTransactionSplitStore = defineStore('transactionSplit', () => {
     splitsByUser,
 
     // Métodos principales
+    fetchAccountSplits,
     fetchUserSplits,
     getSplitsByTransactionId,
     acceptDebt,

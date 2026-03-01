@@ -103,7 +103,6 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { useTransactionStore } from '@/stores/TransactionStore';
 import { useTransactionSplitStore } from '@/stores/TransactionSplitStore';
 import { useAccountStore } from '@/stores/AccountStore';
-import { useUserStore } from '@/stores/UserStore';
 import { getAvatarDataUrl } from '@/components/icons/AvatarIcons';
 import SectionTitle from '@/components/SectionTitle.vue';
 import { getCategoryIcon } from '@/components/icons/CategoryIcons';
@@ -141,7 +140,6 @@ const emit = defineEmits<{
 const transactionStore = useTransactionStore();
 const splitStore = useTransactionSplitStore();
 const accountStore = useAccountStore();
-const userStore = useUserStore();
 
 // ==================== ESTADO ====================
 
@@ -167,20 +165,18 @@ const loadMembers = async (accountId: number) => {
   members.value = await accountStore.fetchAccountMembers(accountId);
 };
 
-// Carga todos los splits del usuario actual de una vez
+// Carga todos los splits de la cuenta de una vez
 // Luego los cruza con las transacciones por transaction_id (sin N+1 queries)
-const loadSplits = async () => {
+const loadSplits = async (accountId: number) => {
   if (!isJoint.value) return;
-  const userId = userStore.currentUser?.user_id;
-  if (!userId) return;
-  splits.value = await splitStore.fetchUserSplits(userId);
+  splits.value = await splitStore.fetchAccountSplits(accountId);
 };
 
 onMounted(() => {
   if (props.accountId) {
     loadTransactions(props.accountId);
     loadMembers(props.accountId);
-    loadSplits();
+    loadSplits(props.accountId);
   }
 });
 
@@ -189,14 +185,14 @@ watch(() => props.accountId, (newId) => {
     displayLimit.value = props.initialLimit;
     loadTransactions(newId);
     loadMembers(newId);
-    loadSplits();
+    loadSplits(newId);
   }
 });
 
 watch(() => props.accountType, () => {
   if (props.accountId) {
     loadMembers(props.accountId);
-    loadSplits();
+    loadSplits(props.accountId);
   }
 });
 
