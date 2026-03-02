@@ -34,7 +34,7 @@
     </nav>
 
     <div class="aside-nav__footer">
-      <button class="user-button" @click="openAccountSwitcher">
+      <button class="user-button" >
         <img
           :src="avatarSrc"
           alt="User avatar"
@@ -51,14 +51,11 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/UserStore';
-import { useAccountStore } from '@/stores/AccountStore';
 import { getAvatarDataUrl } from '@/components/icons/AvatarIcons';
-import AccountSwitcherModal from '@/components/Modals/AccountSwitcherModal.vue';
 import WandaMenuModal from '@/components/Modals/WandaMenuModal.vue';
-import HomeIcon from '../icons/HomeIcon.vue';
-import PlusIcon from '../icons/PlusIcon.vue';
-import CalculatorIcon from '../icons/CalculatorIcon.vue';
+import DashboardIcon from '../icons/DashboardIcon.vue';
 import UserIcon from '../icons/UserIcon.vue';
+
 
 interface MenuItem {
   id: string;
@@ -88,12 +85,10 @@ const activeAccountDisplayName = computed(() => {
 });
 
 const menuItems: MenuItem[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: HomeIcon, path: '/admin' },
-  { id: 'add', label: 'Usuarios', icon: PlusIcon, path: '/admin/users' },
+  { id: 'dashboard', label: 'Panel de control', icon: DashboardIcon, path: '/admin' },
+  { id: 'users', label: 'Administración Usuarios', icon: UserIcon, path: '/admin/users' },
 ];
 
-const openAccountSwitcher = () => { isAccountSwitcherOpen.value = true; };
-const closeAccountSwitcher = () => { isAccountSwitcherOpen.value = false; };
 
 </script>
 
