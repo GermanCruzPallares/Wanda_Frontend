@@ -1,30 +1,30 @@
 // src/services/apiService.ts
 
-import { authService } from './authService'
-import type { Account, User, Transaction, Objective } from '@/types/models'
+import { authService } from './authService';
+import type { Account, User, Transaction, Objective } from '@/types/models';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7777/api'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7777/api';
 
 class ApiService {
   // ==================== MÉTODOS PRIVADOS (HTTP) ====================
-
+  
   private async fetchWithAuth<T>(url: string): Promise<T> {
     const response = await fetch(url, {
       method: 'GET',
       headers: authService.getAuthHeaders(),
-    })
+    });
 
     if (response.status === 401) {
-      authService.logout()
-      throw new Error('Sesión expirada. Por favor, inicia sesión de nuevo.')
+      authService.logout();
+      throw new Error('Sesión expirada. Por favor, inicia sesión de nuevo.');
     }
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Error desconocido' }))
-      throw new Error(error.message || `Error ${response.status}`)
+      const error = await response.json().catch(() => ({ message: 'Error desconocido' }));
+      throw new Error(error.message || `Error ${response.status}`);
     }
 
-    return response.json()
+    return response.json();
   }
 
   private async postWithAuth<T>(url: string, body: any): Promise<T> {
@@ -35,11 +35,11 @@ class ApiService {
       method: 'POST',
       headers: authService.getAuthHeaders(),
       body: JSON.stringify(body),
-    })
+    });
 
     if (response.status === 401) {
-      authService.logout()
-      throw new Error('Sesión expirada. Por favor, inicia sesión de nuevo.')
+      authService.logout();
+      throw new Error('Sesión expirada. Por favor, inicia sesión de nuevo.');
     }
 
     if (!response.ok) {
@@ -60,90 +60,90 @@ class ApiService {
     }
 
     if (response.status === 204) {
-      console.log('✅ 204 No Content - Operación exitosa')
-      return {} as T
-    }
-    const contentType = response.headers.get('content-type')
-    if (!contentType || !contentType.includes('application/json')) {
-      const textResponse = await response.text()
-      console.log('✅ Respuesta de texto:', textResponse)
-      return {} as T // Devolver objeto vacío si es texto plano
-    }
+    console.log('✅ 204 No Content - Operación exitosa');
+    return {} as T;
+  }
+   const contentType = response.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    const textResponse = await response.text();
+    console.log('✅ Respuesta de texto:', textResponse);
+    return {} as T; // Devolver objeto vacío si es texto plano
+  }
 
-    return response.json()
+    return response.json();
   }
 
   private async putWithAuth<T>(url: string, body: any): Promise<T> {
     // ✅ LOG: Ver qué estamos enviando
-    console.log('🔵 PUT Request:', url)
-    console.log('📦 Payload:', JSON.stringify(body, null, 2))
-
+    console.log('🔵 PUT Request:', url);
+    console.log('📦 Payload:', JSON.stringify(body, null, 2));
+    
     const response = await fetch(url, {
       method: 'PUT',
       headers: authService.getAuthHeaders(),
       body: JSON.stringify(body),
-    })
+    });
 
     if (response.status === 401) {
-      authService.logout()
-      throw new Error('Sesión expirada. Por favor, inicia sesión de nuevo.')
+      authService.logout();
+      throw new Error('Sesión expirada. Por favor, inicia sesión de nuevo.');
     }
 
     if (!response.ok) {
       // ✅ Capturar el error completo del backend
-      let errorDetails = 'Error desconocido'
+      let errorDetails = 'Error desconocido';
       try {
-        const errorBody = await response.text()
-        console.error('❌ Response body:', errorBody)
-
+        const errorBody = await response.text();
+        console.error('❌ Response body:', errorBody);
+        
         // Intentar parsear como JSON
         try {
-          const errorJson = JSON.parse(errorBody)
-          errorDetails = errorJson.message || errorJson.title || JSON.stringify(errorJson)
+          const errorJson = JSON.parse(errorBody);
+          errorDetails = errorJson.message || errorJson.title || JSON.stringify(errorJson);
         } catch {
-          errorDetails = errorBody
+          errorDetails = errorBody;
         }
       } catch (e) {
-        console.error('❌ No se pudo leer el cuerpo de la respuesta:', e)
+        console.error('❌ No se pudo leer el cuerpo de la respuesta:', e);
       }
-
-      throw new Error(`Error ${response.status}: ${errorDetails}`)
+      
+      throw new Error(`Error ${response.status}: ${errorDetails}`);
     }
 
     if (response.status === 204) {
-      return {} as T
+      return {} as T;
     }
 
-    return response.json()
+    return response.json();
   }
 
   private async deleteWithAuth<T>(url: string): Promise<T> {
     const response = await fetch(url, {
       method: 'DELETE',
       headers: authService.getAuthHeaders(),
-    })
+    });
 
     if (response.status === 401) {
-      authService.logout()
-      throw new Error('Sesión expirada. Por favor, inicia sesión de nuevo.')
+      authService.logout();
+      throw new Error('Sesión expirada. Por favor, inicia sesión de nuevo.');
     }
 
     if (response.status === 204) {
-      return {} as T
+      return {} as T;
     }
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Error desconocido' }))
-      throw new Error(error.message || `Error ${response.status}`)
+      const error = await response.json().catch(() => ({ message: 'Error desconocido' }));
+      throw new Error(error.message || `Error ${response.status}`);
     }
 
-    return response.json()
+    return response.json();
   }
 
   // ==================== USERS ====================
 
   async getUser(userId: number): Promise<User> {
-    return this.fetchWithAuth<User>(`${API_BASE_URL}/User/${userId}`)
+    return this.fetchWithAuth<User>(`${API_BASE_URL}/User/${userId}`);
   }
 
   async getUserByEmail(email: string): Promise<User | null> {
@@ -151,43 +151,48 @@ class ApiService {
       const response = await fetch(`${API_BASE_URL}/User?email=${encodeURIComponent(email)}`, {
         method: 'GET',
         headers: authService.getAuthHeaders(),
-      })
+      });
 
       if (response.status === 401) {
-        authService.logout()
-        throw new Error('Sesión expirada. Por favor, inicia sesión de nuevo.')
+        authService.logout();
+        throw new Error('Sesión expirada. Por favor, inicia sesión de nuevo.');
       }
 
       if (!response.ok) {
-        return null
+        return null;
       }
 
-      const users = await response.json()
-      return Array.isArray(users) && users.length > 0 ? users[0] : null
+      const users = await response.json();
+      return Array.isArray(users) && users.length > 0 ? users[0] : null;
+      
     } catch (error) {
-      console.error('❌ Error buscando usuario por email:', error)
-      return null
+      console.error('❌ Error buscando usuario por email:', error);
+      return null;
     }
   }
 
   async getUserAccounts(userId: number): Promise<Account[]> {
-    return this.fetchWithAuth<Account[]>(`${API_BASE_URL}/User/${userId}/accounts`)
+    return this.fetchWithAuth<Account[]>(`${API_BASE_URL}/User/${userId}/accounts`);
   }
 
   // ==================== ACCOUNTS ====================
 
   async getAccount(accountId: number): Promise<Account> {
-    return this.fetchWithAuth<Account>(`${API_BASE_URL}/Account/${accountId}`)
+    return this.fetchWithAuth<Account>(`${API_BASE_URL}/Account/${accountId}`);
   }
 
   async getAccountMembers(accountId: number): Promise<User[]> {
-    return this.fetchWithAuth<User[]>(`${API_BASE_URL}/Account/${accountId}/users`)
+    return this.fetchWithAuth<User[]>(`${API_BASE_URL}/Account/${accountId}/users`);
   }
 
-  async createJointAccount(data: { name: string; member_Ids: number[] }): Promise<void> {
-    console.log('📡 POST /api/Account')
-    console.log('📦 Payload:', JSON.stringify(data, null, 2))
-    return this.postWithAuth<void>(`${API_BASE_URL}/Account`, data)
+
+  async createJointAccount(data: {
+    name: string;
+    member_Ids: number[]; 
+  }): Promise<void> {
+    console.log('📡 POST /api/Account');
+    console.log('📦 Payload:', JSON.stringify(data, null, 2));
+    return this.postWithAuth<void>(`${API_BASE_URL}/Account`, data);
   }
 
   async updateAccount(accountId: number, data: Partial<Account>): Promise<void> {
@@ -197,16 +202,16 @@ class ApiService {
       amount: data.amount ?? 0, // ✅ Incluir saldo
       weekly_budget: data.weekly_budget ?? 0,
       monthly_budget: data.monthly_budget ?? 0,
-      account_picture_url: data.account_picture_url ?? '', // ✅ Campo obligatorio en el backend
-    }
-
-    console.log('🔵 updateAccount llamado con:', updatePayload)
-
-    return this.putWithAuth<void>(`${API_BASE_URL}/Account/${accountId}`, updatePayload)
+      account_picture_url: data.account_picture_url ?? '' // ✅ Campo obligatorio en el backend
+    };
+    
+    console.log('🔵 updateAccount llamado con:', updatePayload);
+    
+    return this.putWithAuth<void>(`${API_BASE_URL}/Account/${accountId}`, updatePayload);
   }
 
   // ==================== TRANSACTIONS ====================
-
+  
   async getAccountTransactions(accountId: number): Promise<Transaction[]> {
     return this.fetchWithAuth<Transaction[]>(`${API_BASE_URL}/accounts/${accountId}/transactions`)
   }
@@ -231,9 +236,9 @@ class ApiService {
   }
 
   // ==================== OBJECTIVES ====================
-
+  
   async getAccountObjectives(accountId: number): Promise<Objective[]> {
-    return this.fetchWithAuth<Objective[]>(`${API_BASE_URL}/Account/${accountId}/objectives`)
+    return this.fetchWithAuth<Objective[]>(`${API_BASE_URL}/Account/${accountId}/objectives`);
   }
 
   async createObjective(accountId: number, data: Partial<Objective>): Promise<Objective> {
@@ -253,4 +258,4 @@ class ApiService {
   }
 }
 
-export const apiService = new ApiService()
+export const apiService = new ApiService();
