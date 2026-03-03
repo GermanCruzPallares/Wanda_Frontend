@@ -58,6 +58,8 @@ export interface Objective {
   target_amount: number;
   current_save: number;
   deadline: Date | string;
+  is_completed: boolean;
+  is_archived: boolean;
 }
 
 export interface TransactionSplit {

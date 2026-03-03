@@ -173,11 +173,11 @@ class ApiService {
   }
 
   async getAllUsers(email?: string): Promise<User[]> {
-    const url = email
-      ? `${API_BASE_URL}/User?email=${encodeURIComponent(email)}`
-      : `${API_BASE_URL}/User`;
-    return this.fetchWithAuth<User[]>(url);
-  }
+  const url = email 
+    ? `${API_BASE_URL}/User?email=${encodeURIComponent(email)}`
+    : `${API_BASE_URL}/User`;
+  return this.fetchWithAuth<User[]>(url);
+}
   // ==================== ACCOUNTS ====================
 
   async getAccount(accountId: number): Promise<Account> {
@@ -213,26 +213,6 @@ class ApiService {
     console.log('🔵 updateAccount - merge con datos actuales:', updatePayload);
 
     return this.putWithAuth<void>(`${API_BASE_URL}/Account/${accountId}`, updatePayload);
-  }
-
-  // ==================== TRANSACTIONS ====================
-
-  async getAccountTransactions(accountId: number): Promise<Transaction[]> {
-    return this.fetchWithAuth<Transaction[]>(`${API_BASE_URL}/Account/${accountId}/transactions`);
-  }
-
-  async createTransaction(accountId: number, data: Partial<Transaction>): Promise<Transaction> {
-    return this.postWithAuth<Transaction>(`${API_BASE_URL}/Account/${accountId}/transactions`, data);
-  }
-
-  // ==================== OBJECTIVES ====================
-
-  async getAccountObjectives(accountId: number): Promise<Objective[]> {
-    return this.fetchWithAuth<Objective[]>(`${API_BASE_URL}/Account/${accountId}/objectives`);
-  }
-
-  async createObjective(accountId: number, data: Partial<Objective>): Promise<Objective> {
-    return this.postWithAuth<Objective>(`${API_BASE_URL}/Account/${accountId}/objectives`, data);
   }
 
   // ==================== ADMIN STATS ====================
