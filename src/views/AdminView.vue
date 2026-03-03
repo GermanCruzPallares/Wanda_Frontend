@@ -27,12 +27,13 @@ import AdminDashboard from '@/components/Admin/AdminDashboard.vue';
 
 .admin-content {
   margin-left: $aside-nav-width;
+  padding: 24px;
   min-height: 100vh;
   background-color: $background-principal;
 
   @media (max-width: $breakpoint-mobile) {
     margin-left: 0;
-    padding-top: $navbar-height;
+    padding-top: calc($navbar-height + 16px);
     padding-bottom: 100px;
   }
 }

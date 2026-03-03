@@ -172,6 +172,12 @@ class ApiService {
     return this.fetchWithAuth<Account[]>(`${API_BASE_URL}/User/${userId}/accounts`);
   }
 
+  async getAllUsers(email?: string): Promise<User[]> {
+    const url = email
+      ? `${API_BASE_URL}/User?email=${encodeURIComponent(email)}`
+      : `${API_BASE_URL}/User`;
+    return this.fetchWithAuth<User[]>(url);
+  }
   // ==================== ACCOUNTS ====================
 
   async getAccount(accountId: number): Promise<Account> {

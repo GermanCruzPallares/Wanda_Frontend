@@ -72,9 +72,8 @@ onMounted(async () => {
 @import '@/styles/base/variables.scss';
 
 .admin-dashboard {
-  padding: 24px;
-  max-width: 1200px;
-  margin: 0 auto;
+  padding: 0 ;
+  max-width: 100%;
 
   &__loading,
   &__error {
@@ -114,28 +113,16 @@ onMounted(async () => {
 
   &__grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 20px;
     padding: 0 $section-margin-horizontal;
 
-    &--3 {
-      grid-template-columns: repeat(3, 1fr);
-    }
-
     @media (max-width: $breakpoint-desktop) {
       grid-template-columns: repeat(2, 1fr);
-
-      &--3 {
-        grid-template-columns: repeat(2, 1fr);
-      }
     }
 
     @media (max-width: $breakpoint-mobile) {
       grid-template-columns: 1fr;
-
-      &--3 {
-        grid-template-columns: 1fr;
-      }
     }
   }
 }

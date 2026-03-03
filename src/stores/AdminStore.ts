@@ -4,6 +4,7 @@ import { ref, computed } from 'vue';
 import { defineStore } from 'pinia';
 import { apiService, type SystemStats } from '@/services/apiService';
 import { authService } from '@/services/authService';
+import type { User } from '@/types/models';
 
 export const useAdminStore = defineStore('admin', () => {
 
@@ -14,6 +15,10 @@ export const useAdminStore = defineStore('admin', () => {
     const statsError = ref<string | null>(null);
     const isCreatingAdmin = ref(false);
     const createAdminError = ref<string | null>(null);
+    const users = ref<User[]>([]);
+    const isLoadingUsers = ref(false);
+    const usersError = ref<string | null>(null);
+
 
     // ==================== COMPUTED ====================
 
@@ -67,6 +72,24 @@ export const useAdminStore = defineStore('admin', () => {
         }
     };
 
+    const fetchAllUsers = async (email?: string): Promise<void> => {
+        if (!authService.isAdmin()) {
+            usersError.value = 'No tienes permisos para ver usuarios';
+            return;
+        }
+
+        try {
+            isLoadingUsers.value = true;
+            usersError.value = null;
+            users.value = await apiService.getAllUsers(email);
+        } catch (error) {
+            console.error('Error obteniendo usuarios:', error);
+            usersError.value = error instanceof Error ? error.message : 'Error desconocido';
+        } finally {
+            isLoadingUsers.value = false;
+        }
+    };
+
     // ==================== RETURN ====================
 
     return {
@@ -77,9 +100,13 @@ export const useAdminStore = defineStore('admin', () => {
         hasStats,
         isCreatingAdmin,
         createAdminError,
+        users,
+        isLoadingUsers,
+        usersError,
         fetchSystemStats,
         clearStats,
         createAdmin,
+        fetchAllUsers
 
     };
 });
