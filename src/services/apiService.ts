@@ -76,10 +76,6 @@ class ApiService {
 
   private async putWithAuth<T>(url: string, body: any): Promise<T> {
 
-    console.log('🔵 PUT Request:', url);
-    console.log('📦 Payload:', JSON.stringify(body, null, 2));
-    console.trace('🔍 ¿Quién llamó a putWithAuth?');
-
     const response = await fetch(url, {
       method: 'PUT',
       headers: authService.getAuthHeaders(),
@@ -237,6 +233,10 @@ class ApiService {
 
   async getSystemStats(): Promise<SystemStats> {
     return this.fetchWithAuth<SystemStats>(`${API_BASE_URL}/User/stats`);
+  }
+
+  async createAdmin(data: { name: string; email: string; password: string }): Promise<void> {
+    return this.postWithAuth<void>(`${API_BASE_URL}/Auth/admin`, data);
   }
 
 }
