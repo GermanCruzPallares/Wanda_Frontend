@@ -1,13 +1,75 @@
+<template>
+  <div class="notifications-page">
+    <AsideNav
+      :active-item="activeMenuItem"
+      :account-id="activeAccount?.account_id"
+      @navigate="handleNavigate"
+    />
+
+    <HeaderNav
+      title="Notificaciones"
+      @back="handleBack"
+      class="mobile-only"
+    />
+
+    <div class="desktop-header">
+      <h1 class="page-title">Notificaciones</h1>
+    </div>
+
+    <main class="notifications-content">
+      <DebtNotificationsComponent
+        v-if="userId"
+        :user-id="userId"
+      />
+
+      <div v-else class="loading-container">
+        <p>Cargando datos del usuario...</p>
+      </div>
+    </main>
+  </div>
+</template>
+
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/UserStore';
+import HeaderNav from '@/components/Navs/HeaderNav.vue';
+import AsideNav from '@/components/Navs/AsideNav.vue';
 import DebtNotificationsComponent from '@/components/Notifications/DebtNotificationsComponent.vue';
+import type { AccountUI } from '@/types/models';
 
 const router = useRouter();
 const userStore = useUserStore();
 
+// ==================== ESTADO UI LOCAL ====================
+
+const activeMenuItem = ref('notificaciones');
+
+// ==================== COMPUTED (User Store) ====================
+
 const userId = computed(() => userStore.userId);
+
+const accounts = computed<AccountUI[]>(() => {
+  return userStore.accounts.map(account => ({
+    ...account,
+    isActive: account.account_id === userStore.activeAccountId
+  }));
+});
+
+const activeAccount = computed(() => {
+  return accounts.value.find(acc => acc.isActive);
+});
+
+// ==================== ACTIONS ====================
+
+const handleBack = () => router.back();
+
+const handleNavigate = (itemId: string) => {
+  activeMenuItem.value = itemId;
+  if (itemId === 'inicio') router.push('/home');
+};
+
+// ==================== LIFECYCLE ====================
 
 onMounted(async () => {
   if (!userStore.isAuthenticated) {
@@ -18,72 +80,64 @@ onMounted(async () => {
   if (!userStore.currentUser && userStore.userId) {
     try {
       await userStore.loadUserData(userStore.userId);
-    } catch {
+    } catch (error) {
+      console.error('Error cargando datos:', error);
       router.push('/login');
     }
   }
 });
 </script>
 
-<template>
-  <div class="notifications-view">
-    <header class="notifications-header">
-      <button class="notifications-header__back" @click="router.back()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <h1 class="notifications-header__title">Notificaciones</h1>
-    </header>
-
-    <main class="notifications-content">
-      <DebtNotificationsComponent v-if="userId" :user-id="userId" />
-    </main>
-  </div>
-</template>
-
 <style scoped lang="scss">
 @import '@/styles/base/variables.scss';
 
-.notifications-view {
+.notifications-page {
   min-height: 100vh;
   background-color: $background-principal;
 }
 
-.notifications-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px 20px;
-  border-bottom: 1px solid #e8e8e8;
-  background-color: $color-white;
+.desktop-header {
+  display: none;
 
-  &__back {
-    width: 36px;
-    height: 36px;
-    border: none;
-    background: none;
-    cursor: pointer;
-    color: $color-text;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transition: background-color $transition-speed $transition-ease;
-
-    &:hover { background-color: $section-bg-primary; }
-    &:active { background-color: $section-bg-secondary; }
-  }
-
-  &__title {
-    font-size: 18px;
-    font-weight: 600;
-    color: $color-text;
-    margin: 0;
+  @media (min-width: 768px) {
+    display: block;
+    margin-left: 240px;
+    padding: 32px 32px 0;
   }
 }
 
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: $color-text;
+  margin: 0 0 24px 0;
+}
+
 .notifications-content {
-  padding: 20px;
+  padding-top: 80px;
+  padding-bottom: 80px;
+  padding-left: $section-margin-horizontal;   
+  padding-right: $section-margin-horizontal;  
+  min-height: 100vh;
+
+  @media (min-width: 768px) {
+    margin-left: 240px;
+    padding-top: 20px;
+    padding-bottom: 40px;
+    padding-left: 32px;   
+    padding-right: 32px;  
+  }
+}
+
+.loading-container {
+  padding: 40px;
+  text-align: center;
+  color: $color-text-gray;
+}
+
+.mobile-only {
+  @media (min-width: 768px) {
+    display: none;
+  }
 }
 </style>
