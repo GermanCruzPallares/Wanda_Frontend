@@ -7,15 +7,10 @@
         <div class="transaction-group__date">{{ group.formattedDate }}</div>
 
         <div class="transaction-list">
-          <TransactionCard
-            v-for="transaction in group.transactions"
-            :key="transaction.transaction_id"
-            :transaction="transaction"
-            :is-joint="isJoint"
-            :members="members"
-            :splits="getSplitsForTransaction(transaction.transaction_id)"
-            @click="handleTransactionClick"
-          />
+          <TransactionCard v-for="transaction in group.transactions" :key="transaction.transaction_id"
+            :transaction="transaction" :is-joint="isJoint" :members="members"
+            :splits="getSplitsForTransaction(transaction.transaction_id)" :member-avatars="memberAvatars"
+            @click="handleTransactionClick" />
         </div>
       </div>
 
@@ -25,13 +20,8 @@
 
       <button v-if="canLoadMore" class="load-more-btn" @click="loadMore">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-          <path
-            d="M19 9l-7 7-7-7"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
+          <path d="M19 9l-7 7-7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" />
         </svg>
         Ver más
       </button>
@@ -47,6 +37,12 @@ import { useAccountStore } from '@/stores/AccountStore'
 import SectionTitle from '@/components/SectionTitle.vue'
 import TransactionCard from '@/components/HomeApp/TransactionCard.vue'
 import type { Transaction, TransactionSplit, User } from '@/types/models'
+import { useUserStore } from '@/stores/UserStore';
+import { getAvatarDataUrl } from '@/components/icons/AvatarIcons'
+
+const memberAvatars = ref<Map<number, string>>(new Map());
+
+const userStore = useUserStore();
 
 // ==================== TIPOS ====================
 
@@ -101,9 +97,23 @@ const loadTransactions = async (accountId: number) => {
 }
 
 const loadMembers = async (accountId: number) => {
-  if (!isJoint.value) return
-  members.value = await accountStore.fetchAccountMembers(accountId)
-}
+  if (!isJoint.value) return;
+  members.value = await accountStore.fetchAccountMembers(accountId);
+
+  // Cargar avatares de cada miembro
+  const avatarMap = new Map<number, string>();
+  await Promise.all(
+    members.value.map(async (member) => {
+      const userAccounts = await userStore.fetchUserAccounts(member.user_id);
+      const personalAccount = userAccounts.find(a => a.account_type === 'personal');
+      avatarMap.set(
+        member.user_id,
+        personalAccount?.account_picture_url || getAvatarDataUrl('personal')
+      );
+    })
+  );
+  memberAvatars.value = avatarMap;
+};
 
 const loadSplits = async (accountId: number) => {
   if (!isJoint.value) return
@@ -246,6 +256,7 @@ const handleTransactionClick = (transaction: Transaction) => emit('transactionCl
   text-align: center;
   padding: 40px 20px;
   color: $color-text-gray;
+
   p {
     margin: 0;
     font-size: 14px;
@@ -274,10 +285,12 @@ const handleTransactionClick = (transaction: Transaction) => emit('transactionCl
 
   &:hover {
     color: $color-text;
+
     svg {
       transform: translateY(2px);
     }
   }
+
   &:active {
     transform: scale(0.98);
   }

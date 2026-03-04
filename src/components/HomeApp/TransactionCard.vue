@@ -81,12 +81,14 @@ interface Props {
   isJoint?: boolean
   members?: User[]
   splits?: TransactionSplit[]
+  memberAvatars?: Map<number, string>  
 }
 
 const props = withDefaults(defineProps<Props>(), {
   isJoint: false,
   members: () => [],
   splits: () => [],
+  memberAvatars: () => new Map(),
 })
 
 defineEmits<{
@@ -95,7 +97,9 @@ defineEmits<{
 
 // ==================== HELPERS ====================
 
-const getMemberAvatar = (_userId: number): string => getAvatarDataUrl('personal')
+const getMemberAvatar = (userId: number): string => {
+  return props.memberAvatars.get(userId) || getAvatarDataUrl('personal')
+}
 
 const getMemberName = (userId: number): string => {
   return props.members.find((m) => m.user_id === userId)?.name ?? ''

@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { useAccountStore } from '@/stores/AccountStore';
 import { useTransactionStore } from '@/stores/TransactionStore';
+import { useUserStore } from '@/stores/UserStore';
 import { getAvatarDataUrl } from '@/components/icons/AvatarIcons';
 import type { Account, User } from '@/types/models';
 
@@ -17,11 +18,13 @@ const emit = defineEmits<{
 
 const accountStore = useAccountStore();
 const transactionStore = useTransactionStore();
+const userStore = useUserStore();
 
 const account = ref<Account | null>(null);
 const members = ref<User[]>([]);
 const isLoading = ref(false);
 const expensesByUser = ref<Map<number, number>>(new Map());
+const memberAvatars = ref<Map<number, string>>(new Map());
 
 const loadData = async (accountId: number) => {
   isLoading.value = true;
@@ -34,6 +37,20 @@ const loadData = async (accountId: number) => {
   members.value = fetchedMembers;
 
   if (fetchedAccount) emit('accountLoaded', fetchedAccount);
+
+  
+  const avatarMap = new Map<number, string>();
+  await Promise.all(
+    fetchedMembers.map(async (member) => {
+      const userAccounts = await userStore.fetchUserAccounts(member.user_id);
+      const personalAccount = userAccounts.find(a => a.account_type === 'personal');
+      avatarMap.set(
+        member.user_id,
+        personalAccount?.account_picture_url || getAvatarDataUrl('personal')
+      );
+    })
+  );
+  memberAvatars.value = avatarMap;
 
   await transactionStore.fetchTransactions(accountId);
 
@@ -78,7 +95,9 @@ const getExpense = (userId: number): string => {
   }).format(amount);
 };
 
-const getMemberAvatar = (_user: User): string => getAvatarDataUrl('personal');
+const getMemberAvatar = (user: User): string => {
+  return memberAvatars.value.get(user.user_id) || getAvatarDataUrl('personal');
+};
 </script>
 
 <template>
