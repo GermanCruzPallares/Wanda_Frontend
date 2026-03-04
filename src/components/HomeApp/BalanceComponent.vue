@@ -216,6 +216,9 @@ const weekProgress = computed(() => {
 });
 
 const difference = computed(() => {
+  if(spentPercentage.value <= 0){
+    return 0;
+  }
   return spentPercentage.value - weekProgress.value;
 });
 

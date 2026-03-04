@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { authService } from '@/services/authService';
-
+import { authService } from '@/services/authService'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -46,6 +45,12 @@ const router = createRouter({
       component: () => import('../views/ProfileView.vue'),
     },
     {
+      path: '/edit-transaction/:id',
+      name: 'edit-transaction',
+      component: () => import('../views/EditTransactionView.vue'),
+      props: true,
+    },
+    {
       path: '/book',
       name: 'book',
       component: () => import('../views/BookView.vue'),
@@ -64,30 +69,29 @@ const router = createRouter({
       path: '/home/contributions/:objectiveId?',
       name: 'ObjectiveContributions',
       component: () => import('../views/ObjectiveContributionsView.vue'),
-      props: true
+      props: true,
     },
     {
       path: '/admin',
       name: 'admin',
       component: () => import('../views/AdminView.vue'),
-      meta: { requiresAdmin: true }
+      meta: { requiresAdmin: true },
     },
     {
       path: '/admin/users',
       name: 'adminUsers',
       component: () => import('../views/AdminUsersView.vue'),
-      meta: { requiresAdmin: true }
-    }
+      meta: { requiresAdmin: true },
+    },
   ],
 })
 
 router.beforeEach((to, from, next) => {
   if (to.meta.requiresAdmin && !authService.isAdmin()) {
-    next('/home');
+    next('/home')
   } else {
-    next();
+    next()
   }
-});
-
+})
 
 export default router

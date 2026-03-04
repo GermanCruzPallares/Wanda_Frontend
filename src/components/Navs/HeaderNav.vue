@@ -2,10 +2,16 @@
   <header class="header-nav">
     <button class="header-nav__back" @click="handleBack">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path
+          d="M15 18l-6-6 6-6"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
       </svg>
     </button>
-    
+
     <h1 class="header-nav__title">{{ title }}</h1>
     
     <div class="header-nav__spacer"></div>
@@ -14,18 +20,18 @@
 
 <script setup lang="ts">
 interface Props {
-  title: string;
+  title: string
 }
 
-defineProps<Props>();
+defineProps<Props>()
 
 const emit = defineEmits<{
-  back: [];
-}>();
+  back: []
+}>()
 
 const handleBack = () => {
-  emit('back');
-};
+  emit('back')
+}
 </script>
 
 <style scoped lang="scss">
@@ -36,15 +42,15 @@ const handleBack = () => {
   top: 0;
   left: 0;
   width: 100%;
-  height: 80px;
+  height: $navbar-height;
   background-color: $background-principal;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
+  padding: 0 16px; // Horizontal only, height handles vertical
+  box-sizing: border-box;
   z-index: 1000;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-
 
   @media (min-width: 768px) {
     left: 240px;
@@ -83,7 +89,7 @@ const handleBack = () => {
   }
 
   &__spacer {
-    width: 40px; 
+    width: 40px;
   }
 }
 </style>
