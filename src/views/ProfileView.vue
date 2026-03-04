@@ -16,6 +16,7 @@ import SectionTitle from '@/components/SectionTitle.vue'
 import TransactionCard from '@/components/HomeApp/TransactionCard.vue'
 import { useToast } from '@/composables/useToast'
 import type { AccountUI, Transaction, TransactionSplit, User } from '@/types/models'
+import { getAvatarDataUrl } from '@/components/icons/AvatarIcons'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -43,6 +44,7 @@ const isJoint = computed(() => activeAccount.value?.account_type === 'joint')
 
 // ==================== ESTADO LOCAL ====================
 
+const memberAvatars = ref<Map<number, string>>(new Map())
 const activeMenuItem = ref('perfil')
 const allTransactions = ref<Transaction[]>([])
 const members = ref<User[]>([])
@@ -99,9 +101,24 @@ const loadRecurringData = async (accountId: number) => {
       ])
       members.value = fetchedMembers
       splits.value = fetchedSplits
+
+
+      const avatarMap = new Map<number, string>()
+      await Promise.all(
+        fetchedMembers.map(async (member) => {
+          const userAccounts = await userStore.fetchUserAccounts(member.user_id)
+          const personalAccount = userAccounts.find(a => a.account_type === 'personal')
+          avatarMap.set(
+            member.user_id,
+            personalAccount?.account_picture_url || getAvatarDataUrl('personal')
+          )
+        })
+      )
+      memberAvatars.value = avatarMap
     } else {
       members.value = []
       splits.value = []
+      memberAvatars.value = new Map()
     }
   } catch (error) {
     console.error('Error cargando transacciones recurrentes:', error)
@@ -206,33 +223,20 @@ const confirmDeleteTransaction = async () => {
           <SectionTitle :title="`| Gastos Frecuentes (${recurringExpenses.length})`" />
 
           <div class="profile-recurring__list">
-            <TransactionCard
-              v-for="transaction in displayedExpenses"
-              :key="transaction.transaction_id"
-              :transaction="transaction"
-              :is-joint="isJoint"
-              :members="members"
-              :splits="getSplitsForTransaction(transaction.transaction_id)"
-              @click="handleTransactionClick"
-            />
+            <TransactionCard v-for="transaction in displayedExpenses" :key="transaction.transaction_id"
+              :transaction="transaction" :is-joint="isJoint" :members="members"
+              :splits="getSplitsForTransaction(transaction.transaction_id)" :member-avatars="memberAvatars"
+              @click="handleTransactionClick" />
 
             <div v-if="recurringExpenses.length === 0" class="profile-recurring__empty">
               <p>No hay gastos frecuentes registrados</p>
             </div>
 
-            <button
-              v-if="canShowMoreExpenses"
-              class="profile-recurring__toggle-btn"
-              @click="showAllExpenses = !showAllExpenses"
-            >
+            <button v-if="canShowMoreExpenses" class="profile-recurring__toggle-btn"
+              @click="showAllExpenses = !showAllExpenses">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <path
-                  :d="showAllExpenses ? 'M19 15l-7-7-7 7' : 'M19 9l-7 7-7-7'"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
+                <path :d="showAllExpenses ? 'M19 15l-7-7-7 7' : 'M19 9l-7 7-7-7'" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round" />
               </svg>
               {{ showAllExpenses ? 'Ver menos' : 'Ver más' }}
             </button>
@@ -244,33 +248,20 @@ const confirmDeleteTransaction = async () => {
           <SectionTitle :title="`| Ingresos Frecuentes (${recurringIncomes.length})`" />
 
           <div class="profile-recurring__list">
-            <TransactionCard
-              v-for="transaction in displayedIncomes"
-              :key="transaction.transaction_id"
-              :transaction="transaction"
-              :is-joint="isJoint"
-              :members="members"
-              :splits="getSplitsForTransaction(transaction.transaction_id)"
-              @click="handleTransactionClick"
-            />
+            <TransactionCard v-for="transaction in displayedIncomes" :key="transaction.transaction_id"
+              :transaction="transaction" :is-joint="isJoint" :members="members"
+              :splits="getSplitsForTransaction(transaction.transaction_id)" :member-avatars="memberAvatars"
+              @click="handleTransactionClick" />
 
             <div v-if="recurringIncomes.length === 0" class="profile-recurring__empty">
               <p>No hay ingresos frecuentes registrados</p>
             </div>
 
-            <button
-              v-if="canShowMoreIncomes"
-              class="profile-recurring__toggle-btn"
-              @click="showAllIncomes = !showAllIncomes"
-            >
+            <button v-if="canShowMoreIncomes" class="profile-recurring__toggle-btn"
+              @click="showAllIncomes = !showAllIncomes">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <path
-                  :d="showAllIncomes ? 'M19 15l-7-7-7 7' : 'M19 9l-7 7-7-7'"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
+                <path :d="showAllIncomes ? 'M19 15l-7-7-7 7' : 'M19 9l-7 7-7-7'" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round" />
               </svg>
               {{ showAllIncomes ? 'Ver menos' : 'Ver más' }}
             </button>
@@ -280,13 +271,8 @@ const confirmDeleteTransaction = async () => {
     </div>
   </main>
 
-  <SharedTransactionDeleteModal
-    :is-open="showDeleteModal"
-    :transaction="transactionToDelete"
-    :is-deleting="isDeleting"
-    @close="showDeleteModal = false"
-    @confirm="confirmDeleteTransaction"
-  />
+  <SharedTransactionDeleteModal :is-open="showDeleteModal" :transaction="transactionToDelete" :is-deleting="isDeleting"
+    @close="showDeleteModal = false" @confirm="confirmDeleteTransaction" />
 
   <BottomNav class="mobile-only" />
 </template>

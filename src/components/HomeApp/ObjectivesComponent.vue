@@ -181,6 +181,7 @@ const formatCurrency = (amount: number): string =>
 
   @media (min-width: 768px) {
     padding: 0 0 1.5rem 0;
+    margin: 0 16px;
   }
 
   &__list {
@@ -191,6 +192,7 @@ const formatCurrency = (amount: number): string =>
 }
 
 .objective-card {
+  
   background-color: $section-bg-primary;
   border-radius: $card-border-radius;
   padding: 1.25rem;
