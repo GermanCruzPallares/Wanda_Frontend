@@ -105,8 +105,8 @@ const saveLabel = props.transactionId ? 'Guardar cambios' : 'Guardar'
   // ─── Desktop: right column, always visible ────────────────────────────────
   @media (min-width: 768px) {
     position: relative;
-    width: 420px;
-    min-width: 420px;
+    width: 30vw;
+    
     max-height: none;
     height: 100vh;
     border-radius: 0;

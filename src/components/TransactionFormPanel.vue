@@ -264,8 +264,20 @@ const frequencyLabel = (f: string) =>
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center; // vertically center the form-inner
+    justify-content: flex-start;
     overflow-y: auto;
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
+
+    // Push form-inner to vertical center via auto margins on the inner element
+    // This works because form-inner has margin: auto which distributes space
+    // but still scrolls when content overflows
+    &::before,
+    &::after {
+      content: '';
+      flex: 1;
+      min-height: 20px;
+    }
   }
 }
 
@@ -281,7 +293,7 @@ const frequencyLabel = (f: string) =>
   @media (min-width: 768px) {
     max-width: 520px;
     gap: 22px;
-    padding: 0 32px;
+    padding: 40px 32px 60px; // top/bottom padding so short content looks centered, tall content scrolls
     width: 100%;
   }
 }
