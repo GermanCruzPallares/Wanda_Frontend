@@ -72,10 +72,10 @@ import CalculatorIcon from '../icons/CalculatorIcon.vue';
 import UserIcon from '../icons/UserIcon.vue';
 
 interface MenuItem {
-  id: string;
-  label: string;
-  icon: any;
-  path: string;
+  id: string
+  label: string
+  icon: any
+  path: string
 }
 
 const userStore = useUserStore();
@@ -128,7 +128,7 @@ const handleCreateJointAccount = async (accountName: string, userIds: number[]) 
     console.error('Error creando cuenta conjunta:', error);
     alert('Error al crear la cuenta. Por favor, intenta de nuevo.');
   }
-};
+}
 </script>
 
 <style scoped lang="scss">

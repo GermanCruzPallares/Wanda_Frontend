@@ -115,12 +115,12 @@ export const useUserStore = defineStore('user', () => {
       console.error('Error en login:', error);
       throw error;
     }
-  };
+  }
 
   const register = async (userData: {
-    name: string;
-    email: string;
-    password: string;
+    name: string
+    email: string
+    password: string
   }): Promise<boolean> => {
     try {
       const userId = await authService.register(userData);
@@ -130,7 +130,7 @@ export const useUserStore = defineStore('user', () => {
       console.error('Error en registro:', error);
       throw error;
     }
-  };
+  }
 
   const logout = () => {
     authService.logout();
@@ -142,8 +142,8 @@ export const useUserStore = defineStore('user', () => {
 
   const loadUserData = async (userId: number, forceReload: boolean = false) => {
     try {
-      isLoadingUser.value = true;
-      isLoadingAccounts.value = true;
+      isLoadingUser.value = true
+      isLoadingAccounts.value = true
 
       currentUser.value = await fetchUser(userId);
       accounts.value = await fetchUserAccounts(userId);
@@ -159,7 +159,7 @@ export const useUserStore = defineStore('user', () => {
       }
 
       if (accounts.value.length > 0) {
-        const firstAccount = accounts.value[0];
+        const firstAccount = accounts.value[0]
         if (firstAccount) {
           activeAccountId.value = firstAccount.account_id;
           localStorage.setItem('active_account_id', activeAccountId.value.toString());
@@ -171,10 +171,10 @@ export const useUserStore = defineStore('user', () => {
       console.error('Error cargando datos del usuario:', error);
       throw error;
     } finally {
-      isLoadingUser.value = false;
-      isLoadingAccounts.value = false;
+      isLoadingUser.value = false
+      isLoadingAccounts.value = false
     }
-  };
+  }
 
   const setActiveAccount = (accountId: number) => {
     const account = accounts.value.find(acc => acc.account_id === accountId);
@@ -184,7 +184,7 @@ export const useUserStore = defineStore('user', () => {
     } else {
       console.error('Cuenta no encontrada:', accountId);
     }
-  };
+  }
 
   /** Delega en AccountStore */
   const getAccountUsers = async (accountId: number): Promise<User[]> => {
@@ -230,9 +230,9 @@ export const useUserStore = defineStore('user', () => {
     } catch (error) {
       console.error('Error refrescando cuentas:', error);
     } finally {
-      isLoadingAccounts.value = false;
+      isLoadingAccounts.value = false
     }
-  };
+  }
 
   const initialize = async () => {
     const userId = authService.getUserId();
@@ -250,7 +250,7 @@ export const useUserStore = defineStore('user', () => {
         logout();
       }
     }
-  };
+  }
 
   // ==================== RETURN ====================
 
@@ -271,7 +271,6 @@ export const useUserStore = defineStore('user', () => {
     setActiveAccount,
     getAccountUsers,
     checkUserExists,
-    updateAccount,
     refreshAccounts,
     initialize,
     fetchUser,

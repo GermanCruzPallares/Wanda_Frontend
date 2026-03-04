@@ -3,11 +3,7 @@
     <SectionTitle title="| Historial" />
 
     <section class="transactions-history">
-      <div
-        v-for="group in displayedTransactions"
-        :key="group.date"
-        class="transaction-group"
-      >
+      <div v-for="group in displayedTransactions" :key="group.date" class="transaction-group">
         <div class="transaction-group__date">{{ group.formattedDate }}</div>
 
         <div class="transaction-list">
@@ -29,7 +25,13 @@
 
       <button v-if="canLoadMore" class="load-more-btn" @click="loadMore">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-          <path d="M19 9l-7 7-7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path
+            d="M19 9l-7 7-7-7"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
         </svg>
         Ver más
       </button>
@@ -38,161 +40,180 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
-import { useTransactionStore } from '@/stores/TransactionStore';
-import { useTransactionSplitStore } from '@/stores/TransactionSplitStore';
-import { useAccountStore } from '@/stores/AccountStore';
-import SectionTitle from '@/components/SectionTitle.vue';
-import TransactionCard from '@/components/HomeApp/TransactionCard.vue';
-import type { Transaction, TransactionSplit, User } from '@/types/models';
+import { ref, computed, watch, onMounted } from 'vue'
+import { useTransactionStore } from '@/stores/TransactionStore'
+import { useTransactionSplitStore } from '@/stores/TransactionSplitStore'
+import { useAccountStore } from '@/stores/AccountStore'
+import SectionTitle from '@/components/SectionTitle.vue'
+import TransactionCard from '@/components/HomeApp/TransactionCard.vue'
+import type { Transaction, TransactionSplit, User } from '@/types/models'
 
 // ==================== TIPOS ====================
 
 interface TransactionGroup {
-  date: string;
-  formattedDate: string;
-  transactions: Transaction[];
+  date: string
+  formattedDate: string
+  transactions: Transaction[]
 }
 
 // ==================== PROPS ====================
 
 interface Props {
-  accountId?: number;
-  accountType?: 'personal' | 'joint';
-  initialLimit?: number;
-  loadMoreIncrement?: number;
+  accountId?: number
+  accountType?: 'personal' | 'joint'
+  initialLimit?: number
+  loadMoreIncrement?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
   initialLimit: 5,
-  loadMoreIncrement: 10
-});
+  loadMoreIncrement: 10,
+})
 
 const emit = defineEmits<{
-  transactionClick: [transactionId: number];
-  transactionsLoaded: [transactions: Transaction[]];
-}>();
+  transactionClick: [transaction: Transaction]
+  transactionsLoaded: [transactions: Transaction[]]
+}>()
 
 // ==================== STORES ====================
 
-const transactionStore = useTransactionStore();
-const splitStore = useTransactionSplitStore();
-const accountStore = useAccountStore();
+const transactionStore = useTransactionStore()
+const splitStore = useTransactionSplitStore()
+const accountStore = useAccountStore()
 
 // ==================== ESTADO ====================
 
-const transactions = ref<Transaction[]>([]);
-const members = ref<User[]>([]);
-const splits = ref<TransactionSplit[]>([]);
-const isLoading = ref(false);
-const displayLimit = ref(props.initialLimit);
+const transactions = ref<Transaction[]>([])
+const members = ref<User[]>([])
+const splits = ref<TransactionSplit[]>([])
+const isLoading = ref(false)
+const displayLimit = ref(props.initialLimit)
 
-const isJoint = computed(() => props.accountType === 'joint');
+const isJoint = computed(() => props.accountType === 'joint')
 
 // ==================== CARGA ====================
 
 const loadTransactions = async (accountId: number) => {
-  isLoading.value = true;
-  transactions.value = await transactionStore.fetchTransactions(accountId);
-  emit('transactionsLoaded', transactions.value);
-  isLoading.value = false;
-};
+  isLoading.value = true
+  transactions.value = await transactionStore.fetchTransactions(accountId)
+  emit('transactionsLoaded', transactions.value)
+  isLoading.value = false
+}
 
 const loadMembers = async (accountId: number) => {
-  if (!isJoint.value) return;
-  members.value = await accountStore.fetchAccountMembers(accountId);
-};
+  if (!isJoint.value) return
+  members.value = await accountStore.fetchAccountMembers(accountId)
+}
 
 const loadSplits = async (accountId: number) => {
-  if (!isJoint.value) return;
-  splits.value = await splitStore.fetchAccountSplits(accountId);
-};
+  if (!isJoint.value) return
+  splits.value = await splitStore.fetchAccountSplits(accountId)
+}
 
 onMounted(() => {
   if (props.accountId) {
-    loadTransactions(props.accountId);
-    loadMembers(props.accountId);
-    loadSplits(props.accountId);
+    loadTransactions(props.accountId)
+    loadMembers(props.accountId)
+    loadSplits(props.accountId)
   }
-});
+})
 
-watch(() => props.accountId, (newId) => {
-  if (newId) {
-    displayLimit.value = props.initialLimit;
-    loadTransactions(newId);
-    loadMembers(newId);
-    loadSplits(newId);
-  }
-});
+watch(
+  () => props.accountId,
+  (newId) => {
+    if (newId) {
+      displayLimit.value = props.initialLimit
+      loadTransactions(newId)
+      loadMembers(newId)
+      loadSplits(newId)
+    }
+  },
+)
 
-watch(() => props.accountType, () => {
-  if (props.accountId) {
-    loadMembers(props.accountId);
-    loadSplits(props.accountId);
-  }
-});
+watch(
+  () => props.accountType,
+  () => {
+    if (props.accountId) {
+      loadMembers(props.accountId)
+      loadSplits(props.accountId)
+    }
+  },
+)
 
 // ==================== SPLITS ====================
 
 const getSplitsForTransaction = (transactionId: number): TransactionSplit[] => {
-  return splits.value.filter(s => s.transaction_id === transactionId);
-};
+  return splits.value.filter((s) => s.transaction_id === transactionId)
+}
 
 // ==================== HELPERS ====================
 
-const parseDate = (date: Date | string): Date =>
-  typeof date === 'string' ? new Date(date) : date;
+const parseDate = (date: Date | string): Date => (typeof date === 'string' ? new Date(date) : date)
 
 const groupedTransactions = computed<TransactionGroup[]>(() => {
-  const groups = new Map<string, Transaction[]>();
+  const groups = new Map<string, Transaction[]>()
 
-  const sorted = [...transactions.value].sort(
-  (a, b) => {
-    const dateDiff = parseDate(b.transaction_date).getTime() - parseDate(a.transaction_date).getTime();
-    if (dateDiff !== 0) return dateDiff;
-    return b.transaction_id - a.transaction_id;
-  }
-);
+  const sorted = [...transactions.value].sort((a, b) => {
+    const dateDiff =
+      parseDate(b.transaction_date).getTime() - parseDate(a.transaction_date).getTime()
+    if (dateDiff !== 0) return dateDiff
+    return b.transaction_id - a.transaction_id
+  })
 
-  sorted.forEach(t => {
-    const dateKey = parseDate(t.transaction_date).toISOString().split('T')[0] ?? '';
-    if (!dateKey) return;
-    if (!groups.has(dateKey)) groups.set(dateKey, []);
-    groups.get(dateKey)!.push(t);
-  });
+  sorted.forEach((t) => {
+    const dateKey = parseDate(t.transaction_date).toISOString().split('T')[0] ?? ''
+    if (!dateKey) return
+    if (!groups.has(dateKey)) groups.set(dateKey, [])
+    groups.get(dateKey)!.push(t)
+  })
 
   return Array.from(groups.entries()).map(([date, txs]) => ({
     date,
     formattedDate: formatDate(new Date(date)),
-    transactions: txs
-  }));
-});
+    transactions: txs,
+  }))
+})
 
 const displayedTransactions = computed(() => {
-  let count = 0;
-  const result: TransactionGroup[] = [];
+  let count = 0
+  const result: TransactionGroup[] = []
 
   for (const group of groupedTransactions.value) {
-    if (count >= displayLimit.value) break;
-    const slots = displayLimit.value - count;
-    const toShow = group.transactions.slice(0, slots);
+    if (count >= displayLimit.value) break
+    const slots = displayLimit.value - count
+    const toShow = group.transactions.slice(0, slots)
     if (toShow.length > 0) {
-      result.push({ ...group, transactions: toShow });
-      count += toShow.length;
+      result.push({ ...group, transactions: toShow })
+      count += toShow.length
     }
   }
-  return result;
-});
+  return result
+})
 
-const canLoadMore = computed(() => displayLimit.value < transactions.value.length);
+const canLoadMore = computed(() => displayLimit.value < transactions.value.length)
 
 const formatDate = (date: Date): string => {
-  const months = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-  return `${date.getDate().toString().padStart(2,'0')} ${months[date.getMonth()]} ${date.getFullYear()}`;
-};
+  const months = [
+    'enero',
+    'febrero',
+    'marzo',
+    'abril',
+    'mayo',
+    'junio',
+    'julio',
+    'agosto',
+    'septiembre',
+    'octubre',
+    'noviembre',
+    'diciembre',
+  ]
+  return `${date.getDate().toString().padStart(2, '0')} ${months[date.getMonth()]} ${date.getFullYear()}`
+}
 
-const loadMore = () => { displayLimit.value += props.loadMoreIncrement; };
-const handleTransactionClick = (id: number) => emit('transactionClick', id);
+const loadMore = () => {
+  displayLimit.value += props.loadMoreIncrement
+}
+const handleTransactionClick = (transaction: Transaction) => emit('transactionClick', transaction)
 </script>
 
 <style scoped lang="scss">
@@ -225,7 +246,10 @@ const handleTransactionClick = (id: number) => emit('transactionClick', id);
   text-align: center;
   padding: 40px 20px;
   color: $color-text-gray;
-  p { margin: 0; font-size: 14px; }
+  p {
+    margin: 0;
+    font-size: 14px;
+  }
 }
 
 .load-more-btn {
@@ -244,12 +268,18 @@ const handleTransactionClick = (id: number) => emit('transactionClick', id);
   cursor: pointer;
   transition: color $transition-speed $transition-ease;
 
-  svg { transition: transform $transition-speed $transition-ease; }
+  svg {
+    transition: transform $transition-speed $transition-ease;
+  }
 
   &:hover {
     color: $color-text;
-    svg { transform: translateY(2px); }
+    svg {
+      transform: translateY(2px);
+    }
   }
-  &:active { transform: scale(0.98); }
+  &:active {
+    transform: scale(0.98);
+  }
 }
 </style>

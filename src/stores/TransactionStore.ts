@@ -1,30 +1,29 @@
-import { ref } from 'vue';
-import { defineStore } from 'pinia';
-import type { Transaction } from '@/types/models';
+import { ref } from 'vue'
+import { defineStore } from 'pinia'
+import type { Transaction } from '@/types/models'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7085/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7085/api'
 
 export const useTransactionStore = defineStore('transaction', () => {
-
   // ==================== ESTADO ====================
 
-  const transactionsByAccount = ref<Map<number, Transaction[]>>(new Map());
+  const transactionsByAccount = ref<Map<number, Transaction[]>>(new Map())
 
   // ==================== HELPERS ====================
 
   const getAuthHeaders = (): HeadersInit => {
-    const token = localStorage.getItem('wanda_auth_token');
+    const token = localStorage.getItem('wanda_auth_token')
     return {
       'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` })
-    };
-  };
+      ...(token && { Authorization: `Bearer ${token}` }),
+    }
+  }
 
   const handleUnauthorized = () => {
-    localStorage.removeItem('wanda_auth_token');
-    localStorage.removeItem('wanda_user_id');
-    window.location.href = '/login';
-  };
+    localStorage.removeItem('wanda_auth_token')
+    localStorage.removeItem('wanda_user_id')
+    window.location.href = '/login'
+  }
 
   // ==================== API CALLS ====================
 
@@ -39,43 +38,46 @@ export const useTransactionStore = defineStore('transaction', () => {
   const fetchTransactions = async (
     accountId: number,
     filters?: {
-      objectiveId?: number;
-      type?: 'expense' | 'income' | 'saving';
-    }
+      objectiveId?: number
+      type?: 'expense' | 'income' | 'saving'
+    },
   ): Promise<Transaction[]> => {
     try {
-      let url = `${API_BASE_URL}/accounts/${accountId}/transactions`;
+      let url = `${API_BASE_URL}/accounts/${accountId}/transactions`
 
       if (filters) {
-        const params = new URLSearchParams();
-        if (filters.objectiveId !== undefined) params.append('objectiveId', filters.objectiveId.toString());
-        if (filters.type) params.append('type', filters.type);
-        const query = params.toString();
-        if (query) url += `?${query}`;
+        const params = new URLSearchParams()
+        if (filters.objectiveId !== undefined)
+          params.append('objectiveId', filters.objectiveId.toString())
+        if (filters.type) params.append('type', filters.type)
+        const query = params.toString()
+        if (query) url += `?${query}`
       }
 
       const response = await fetch(url, {
         method: 'GET',
-        headers: getAuthHeaders()
-      });
+        headers: getAuthHeaders(),
+      })
 
-      if (response.status === 401) { handleUnauthorized(); return []; }
-      if (response.status === 404) return [];
-      if (!response.ok) throw new Error(`Error ${response.status}`);
+      if (response.status === 401) {
+        handleUnauthorized()
+        return []
+      }
+      if (response.status === 404) return []
+      if (!response.ok) throw new Error(`Error ${response.status}`)
 
-      const transactions = await response.json();
+      const transactions = await response.json()
 
       if (!filters) {
-        transactionsByAccount.value.set(accountId, transactions);
+        transactionsByAccount.value.set(accountId, transactions)
       }
 
-      return transactions;
-
+      return transactions
     } catch (error) {
-      console.error('Error fetchTransactions:', error);
-      return [];
+      console.error('Error fetchTransactions:', error)
+      return []
     }
-  };
+  }
 
   /**
    * Obtener aportaciones (con objetivo opcional)
@@ -83,25 +85,22 @@ export const useTransactionStore = defineStore('transaction', () => {
    * - fetchSavings(1) → Todas las aportaciones
    * - fetchSavings(1, 5) → Aportaciones del objetivo 5
    */
-  const fetchSavings = async (
-    accountId: number,
-    objectiveId?: number
-  ): Promise<Transaction[]> => {
+  const fetchSavings = async (accountId: number, objectiveId?: number): Promise<Transaction[]> => {
     return fetchTransactions(accountId, {
       type: 'saving',
-      ...(objectiveId !== undefined && { objectiveId })
-    });
-  };
+      ...(objectiveId !== undefined && { objectiveId }),
+    })
+  }
 
   /**
    * Obtener todas las transacciones de un objetivo
    */
   const fetchTransactionsByObjective = async (
     accountId: number,
-    objectiveId: number
+    objectiveId: number,
   ): Promise<Transaction[]> => {
-    return fetchTransactions(accountId, { objectiveId });
-  };
+    return fetchTransactions(accountId, { objectiveId })
+  }
 
   /**
    * Obtener una transacción específica
@@ -110,18 +109,17 @@ export const useTransactionStore = defineStore('transaction', () => {
     try {
       const response = await fetch(`${API_BASE_URL}/transactions/${transactionId}`, {
         method: 'GET',
-        headers: getAuthHeaders()
-      });
+        headers: getAuthHeaders(),
+      })
 
-      if (!response.ok) return null;
+      if (!response.ok) return null
 
-      return await response.json();
-
+      return await response.json()
     } catch (error) {
-      console.error('Error fetchTransactionById:', error);
-      return null;
+      console.error('Error fetchTransactionById:', error)
+      return null
     }
-  };
+  }
 
   /**
    * Crear una transacción
@@ -129,41 +127,41 @@ export const useTransactionStore = defineStore('transaction', () => {
   const createTransaction = async (
     accountId: number,
     data: {
-      user_id: number;
-      objective_id?: number;
-      category: string;
-      amount: number;
-      transaction_type: 'expense' | 'income' | 'saving';
-      concept?: string | null;
-      transaction_date: Date | string;
-      isRecurring?: boolean;
-      frequency?: 'weekly' | 'monthly' | 'yearly' | null;
-      end_date?: Date | string | null;
-      split_type?: 'individual' | 'contribution' | 'divided' | null;
-    }
+      user_id: number
+      objective_id?: number
+      category: string
+      amount: number
+      transaction_type: 'expense' | 'income' | 'saving'
+      concept?: string | null
+      transaction_date: Date | string
+      isRecurring?: boolean
+      frequency?: 'weekly' | 'monthly' | 'annual' | null
+      end_date?: Date | string | null
+      split_type?: 'individual' | 'contribution' | 'divided' | null
+      customSplits?: any[] | null
+    },
   ): Promise<boolean> => {
     try {
       const response = await fetch(`${API_BASE_URL}/accounts/${accountId}/transactions`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify(data)
-      });
+        body: JSON.stringify(data),
+      })
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || `Error ${response.status}`);
+        const errorText = await response.text()
+        throw new Error(errorText || `Error ${response.status}`)
       }
 
-      transactionsByAccount.value.delete(accountId);
-      await fetchTransactions(accountId);
+      transactionsByAccount.value.delete(accountId)
+      await fetchTransactions(accountId)
 
-      return true;
-
+      return true
     } catch (error) {
-      console.error('Error createTransaction:', error);
-      throw error;
+      console.error('Error createTransaction:', error)
+      throw error
     }
-  };
+  }
 
   /**
    * Actualizar una transacción
@@ -171,84 +169,80 @@ export const useTransactionStore = defineStore('transaction', () => {
   const updateTransaction = async (
     transactionId: number,
     updates: {
-      category?: string;
-      amount?: number;
-      transaction_type?: 'expense' | 'income' | 'saving';
-      concept?: string | null;
-      transaction_date?: Date | string;
-      isRecurring?: boolean;
-      frequency?: 'weekly' | 'monthly' | 'yearly' | null;
-      end_date?: Date | string | null;
-      split_type?: 'individual' | 'contribution' | 'divided' | null;
-    }
+      category?: string
+      amount?: number
+      transaction_type?: 'expense' | 'income' | 'saving'
+      concept?: string | null
+      transaction_date?: Date | string
+      isRecurring?: boolean
+      frequency?: 'weekly' | 'monthly' | 'annual' | null
+      end_date?: Date | string | null
+      split_type?: 'individual' | 'contribution' | 'divided' | null
+      customSplits?: any[] | null
+    },
   ): Promise<boolean> => {
     try {
       const response = await fetch(`${API_BASE_URL}/transactions/${transactionId}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
-        body: JSON.stringify(updates)
-      });
+        body: JSON.stringify(updates),
+      })
 
-      if (!response.ok) throw new Error(`Error ${response.status}`);
+      if (!response.ok) throw new Error(`Error ${response.status}`)
 
-      transactionsByAccount.value.clear();
+      transactionsByAccount.value.clear()
 
-      return true;
-
+      return true
     } catch (error) {
-      console.error('Error updateTransaction:', error);
-      throw error;
+      console.error('Error updateTransaction:', error)
+      throw error
     }
-  };
+  }
 
   /**
    * Eliminar una transacción
    */
-  const deleteTransaction = async (
-    transactionId: number,
-    accountId?: number
-  ): Promise<boolean> => {
+  const deleteTransaction = async (transactionId: number, accountId?: number): Promise<boolean> => {
     try {
       const response = await fetch(`${API_BASE_URL}/transactions/${transactionId}`, {
         method: 'DELETE',
-        headers: getAuthHeaders()
-      });
+        headers: getAuthHeaders(),
+      })
 
-      if (!response.ok) throw new Error(`Error ${response.status}`);
+      if (!response.ok) throw new Error(`Error ${response.status}`)
 
       if (accountId) {
-        transactionsByAccount.value.delete(accountId);
-        await fetchTransactions(accountId);
+        transactionsByAccount.value.delete(accountId)
+        await fetchTransactions(accountId)
       } else {
-        transactionsByAccount.value.clear();
+        transactionsByAccount.value.clear()
       }
 
-      return true;
-
+      return true
     } catch (error) {
-      console.error('Error deleteTransaction:', error);
-      throw error;
+      console.error('Error deleteTransaction:', error)
+      throw error
     }
-  };
+  }
 
   // ==================== UTILIDADES ====================
 
   const getTransactionsFromCache = (accountId: number): Transaction[] | null => {
-    return transactionsByAccount.value.get(accountId) || null;
-  };
+    return transactionsByAccount.value.get(accountId) || null
+  }
 
   const clearCache = (accountId?: number) => {
     if (accountId) {
-      transactionsByAccount.value.delete(accountId);
+      transactionsByAccount.value.delete(accountId)
     } else {
-      transactionsByAccount.value.clear();
+      transactionsByAccount.value.clear()
     }
-  };
+  }
 
   const refreshTransactions = async (accountId: number): Promise<Transaction[]> => {
-    transactionsByAccount.value.delete(accountId);
-    return await fetchTransactions(accountId);
-  };
+    transactionsByAccount.value.delete(accountId)
+    return await fetchTransactions(accountId)
+  }
 
   // ==================== RETURN ====================
 
@@ -263,6 +257,6 @@ export const useTransactionStore = defineStore('transaction', () => {
     deleteTransaction,
     getTransactionsFromCache,
     clearCache,
-    refreshTransactions
-  };
-});
+    refreshTransactions,
+  }
+})

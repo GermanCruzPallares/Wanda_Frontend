@@ -1,8 +1,8 @@
-import { ref } from 'vue';
-import { defineStore } from 'pinia';
-import type { Objective } from '@/types/models';
+import { ref } from 'vue'
+import { defineStore } from 'pinia'
+import type { Objective } from '@/types/models'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7085/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7085/api'
 
 export const useObjectiveStore = defineStore('objective', () => {
 
@@ -14,7 +14,7 @@ export const useObjectiveStore = defineStore('objective', () => {
 
   // ── Helpers ─────────────────────────────────────────────────────────────
   const getAuthHeaders = (): HeadersInit => {
-    const token = localStorage.getItem('wanda_auth_token');
+    const token = localStorage.getItem('wanda_auth_token')
     return {
       'Content-Type': 'application/json',
       ...(token && { Authorization: `Bearer ${token}` }),
@@ -22,10 +22,10 @@ export const useObjectiveStore = defineStore('objective', () => {
   };
 
   const handleUnauthorized = () => {
-    localStorage.removeItem('wanda_auth_token');
-    localStorage.removeItem('wanda_user_id');
-    window.location.href = '/login';
-  };
+    localStorage.removeItem('wanda_auth_token')
+    localStorage.removeItem('wanda_user_id')
+    window.location.href = '/login'
+  }
 
   // ── fetchObjectives ──────────────────────────────────────────────────────
   /**
@@ -208,7 +208,7 @@ export const useObjectiveStore = defineStore('objective', () => {
       objectivesByAccount.value.clear();
       archivedByAccount.value.clear();
     }
-  };
+  }
 
   const refreshObjectives = (accountId: number): Promise<Objective[]> => {
     objectivesByAccount.value.delete(accountId);
