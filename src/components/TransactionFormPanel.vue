@@ -7,7 +7,7 @@ import type { User } from '@/types/models'
 // ─── Props ───────────────────────────────────────────────────────────────────
 const props = defineProps<{
   transactionId?: number
-  fixedNav?: boolean // true when parent uses position:fixed TopNav (AddTransactionView)
+  fixedNav?: boolean
   type: 'expense' | 'income' | 'saving'
   amount: string
   categories: { id: number; name: string }[]
@@ -20,6 +20,7 @@ const props = defineProps<{
   isSplit: boolean
   splitMode: 'percentage' | '50-50' | 'amount'
   accountMembers: User[]
+  memberAvatars?: Map<number, string>
   splitValues: Record<number, { percentage: number; amount: number }>
   membersError: string
   activeAccount: { account_id: number; account_type: string } | undefined
@@ -49,7 +50,7 @@ const scrollSlider = (dir: 'left' | 'right') => {
   sliderRef.value?.scrollBy({ left: dir === 'left' ? -200 : 200, behavior: 'smooth' })
 }
 
-// ─── Computed label helpers ───────────────────────────────────────────────────
+// ─── Label helpers ────────────────────────────────────────────────────────────
 const titleLabel = (t: string) => {
   if (props.transactionId) {
     return t === 'expense' ? 'Editar Gasto' : t === 'income' ? 'Editar Ingreso' : 'Editar Ahorro'
@@ -65,19 +66,13 @@ const frequencyLabel = (f: string) =>
 </script>
 
 <template>
-  <div
-    class="form-panel"
-    :class="{ 'keypad-open': keypadOpen }"
-    :style="fixedNav ? { paddingTop: 'calc(85px + env(safe-area-inset-top) + 12px)' } : {}"
-  >
+  <div class="form-panel" :class="{ 'keypad-open': keypadOpen }"
+    :style="fixedNav ? { paddingTop: 'calc(85px + env(safe-area-inset-top) + 12px)' } : {}">
     <div class="form-inner">
 
       <!-- Type selector -->
-      <div
-        v-if="!transactionId && activeAccount?.account_type !== 'joint'"
-        class="type-selector"
-        :class="{ 'is-add-view': !transactionId }"
-      >
+      <div v-if="!transactionId && activeAccount?.account_type !== 'joint'" class="type-selector"
+        :class="{ 'is-add-view': !transactionId }">
         <button :class="{ active: type === 'expense' }" @click="emit('update:type', 'expense')">Gasto</button>
         <button :class="{ active: type === 'income' }" @click="emit('update:type', 'income')">Ingreso</button>
       </div>
@@ -87,9 +82,7 @@ const frequencyLabel = (f: string) =>
         <span class="amount-title">{{ titleLabel(type) }}</span>
         <div class="amount-value" :class="{ 'is-active': keypadOpen }">
           <span class="currency">EUR</span>
-          <span class="value">
-            {{ amount }}<span class="cursor" v-if="keypadOpen">|</span>
-          </span>
+          <span class="value">{{ amount }}</span>
         </div>
       </div>
 
@@ -99,13 +92,8 @@ const frequencyLabel = (f: string) =>
           <IconArrow class="arrow-icon-left" />
         </button>
         <div class="categories-slider" ref="sliderRef">
-          <button
-            v-for="cat in categories"
-            :key="cat.id"
-            class="category-item"
-            :class="{ selected: selectedCategory === cat.id }"
-            @click="emit('update:selectedCategory', cat.id)"
-          >
+          <button v-for="cat in categories" :key="cat.id" class="category-item"
+            :class="{ selected: selectedCategory === cat.id }" @click="emit('update:selectedCategory', cat.id)">
             <div class="icon-circle">
               <component :is="getCategoryIcon(cat.name)" class="category-icon" />
             </div>
@@ -120,14 +108,9 @@ const frequencyLabel = (f: string) =>
       <!-- Concept input -->
       <div class="concept-section">
         <div class="concept-input-wrapper">
-          <input
-            type="text"
-            :value="conceptText"
-            placeholder="Añadir concepto (opcional)"
-            class="concept-input"
+          <input type="text" :value="conceptText" placeholder="Añadir concepto (opcional)" class="concept-input"
             @input="emit('update:conceptText', ($event.target as HTMLInputElement).value)"
-            @focus="emit('closeKeypad')"
-          />
+            @focus="emit('closeKeypad')" />
         </div>
       </div>
 
@@ -136,11 +119,8 @@ const frequencyLabel = (f: string) =>
         <div class="section-header">
           <span>{{ recurringLabel(type) }}</span>
           <label class="switch">
-            <input
-              type="checkbox"
-              :checked="isRecurring"
-              @change="emit('update:isRecurring', ($event.target as HTMLInputElement).checked)"
-            />
+            <input type="checkbox" :checked="isRecurring"
+              @change="emit('update:isRecurring', ($event.target as HTMLInputElement).checked)" />
             <span class="slider round"></span>
           </label>
         </div>
@@ -158,22 +138,15 @@ const frequencyLabel = (f: string) =>
           </div>
           <div v-if="duration === 'defined'" class="date-picker">
             <span>Fecha de fin:</span>
-            <input
-              type="date"
-              :value="endDate"
-              class="date-input"
-              @change="emit('update:endDate', ($event.target as HTMLInputElement).value)"
-            />
+            <input type="date" :value="endDate" class="date-input"
+              @change="emit('update:endDate', ($event.target as HTMLInputElement).value)" />
           </div>
         </div>
       </div>
 
       <!-- Split section (joint accounts only, not for savings) -->
-      <div
-        v-if="activeAccount?.account_type === 'joint' && type !== 'saving'"
-        class="section-card split-section"
-        :class="{ 'is-active': isSplit }"
-      >
+      <div v-if="activeAccount?.account_type === 'joint' && type !== 'saving'" class="section-card split-section"
+        :class="{ 'is-active': isSplit }">
         <div class="section-header">
           <div class="split-header-text">
             <span>Gasto Dividido</span>
@@ -182,12 +155,8 @@ const frequencyLabel = (f: string) =>
             </small>
           </div>
           <label class="switch">
-            <input
-              type="checkbox"
-              :checked="isSplit"
-              :disabled="transactionId !== undefined"
-              @change="emit('update:isSplit', ($event.target as HTMLInputElement).checked)"
-            />
+            <input type="checkbox" :checked="isSplit" :disabled="transactionId !== undefined"
+              @change="emit('update:isSplit', ($event.target as HTMLInputElement).checked)" />
             <span class="slider round"></span>
           </label>
         </div>
@@ -205,32 +174,40 @@ const frequencyLabel = (f: string) =>
             <div v-for="(member, index) in accountMembers" :key="member.user_id" class="split-member-item">
               <div class="member-top-row">
                 <div class="member-info">
-                  <div
-                    class="member-avatar"
-                    :style="{ background: index % 2 === 0 ? '#a9f06b' : '#333', color: index % 2 === 0 ? '#000' : '#fff' }"
-                  >
-                    {{ member.name.charAt(0).toUpperCase() }}
+
+                  <!-- Avatar: foto de perfil o inicial como fallback -->
+                  <div class="member-avatar">
+                    <img
+                      v-if="memberAvatars?.get(member.user_id)"
+                      :src="memberAvatars.get(member.user_id)"
+                      :alt="member.name"
+                      class="member-avatar-img"
+                    />
+                    <span
+                      v-else
+                      class="member-avatar-fallback"
+                      :style="{ background: index % 2 === 0 ? '#a9f06b' : '#333', color: index % 2 === 0 ? '#000' : '#fff' }"
+                    >
+                      {{ member.name.charAt(0).toUpperCase() }}
+                    </span>
                   </div>
+
                   <span class="member-name">{{ member.name }}</span>
                 </div>
                 <span class="member-calculated" v-if="splitMode !== 'amount'">
                   {{ splitValues[member.user_id]?.amount.toFixed(2).replace('.', ',') }}€
                 </span>
                 <div v-else class="member-input-control">
-                  <input
-                    type="number" step="0.01" class="amount-input"
+                  <input type="number" step="0.01" class="amount-input"
                     :value="splitValues[member.user_id]?.amount || 0"
-                    @change="emit('updateSplitValue', member.user_id, 'amount', parseFloat(($event.target as HTMLInputElement).value))"
-                  />
+                    @change="emit('updateSplitValue', member.user_id, 'amount', parseFloat(($event.target as HTMLInputElement).value))" />
                   <span>€</span>
                 </div>
               </div>
               <div v-if="splitMode === 'percentage'" class="member-range-row">
-                <input
-                  type="range" class="range-slider" min="0" max="100"
+                <input type="range" class="range-slider" min="0" max="100"
                   :value="splitValues[member.user_id]?.percentage || 0"
-                  @input="emit('updateSplitValue', member.user_id, 'percentage', parseFloat(($event.target as HTMLInputElement).value))"
-                />
+                  @input="emit('updateSplitValue', member.user_id, 'percentage', parseFloat(($event.target as HTMLInputElement).value))" />
                 <div class="range-labels">
                   <span>{{ splitValues[member.user_id]?.percentage.toFixed(0) }}%</span>
                   <span>100%</span>
@@ -243,7 +220,7 @@ const frequencyLabel = (f: string) =>
         </div>
       </div>
 
-      <!-- Mobile save button — only visible when TopNav/BottomNav are shown -->
+      <!-- Mobile save button -->
       <button class="mobile-save-btn" @click="emit('save')">
         Guardar
       </button>
@@ -253,19 +230,15 @@ const frequencyLabel = (f: string) =>
 </template>
 
 <style scoped lang="scss">
-// ─── Panel base ───────────────────────────────────────────────────────────────
 .form-panel {
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   background: #ffffff;
-
   padding-top: 12px;
   padding-bottom: 60px;
 
   &.keypad-open {
-    // Extra padding only on mobile so content scrolls above the open keypad
-    // On desktop the keypad is a fixed column — no padding needed
     @media (max-width: 767px) {
       padding-bottom: 280px;
     }
@@ -283,9 +256,6 @@ const frequencyLabel = (f: string) =>
     scrollbar-width: none;
     &::-webkit-scrollbar { display: none; }
 
-    // Push form-inner to vertical center via auto margins on the inner element
-    // This works because form-inner has margin: auto which distributes space
-    // but still scrolls when content overflows
     &::before,
     &::after {
       content: '';
@@ -307,12 +277,11 @@ const frequencyLabel = (f: string) =>
   @media (min-width: 768px) {
     max-width: 520px;
     gap: 22px;
-    padding: 40px 32px 60px; // top/bottom padding so short content looks centered, tall content scrolls
+    padding: 40px 32px 60px;
     width: 100%;
   }
 }
 
-// ─── Type selector ────────────────────────────────────────────────────────────
 .type-selector {
   display: flex;
   justify-content: center;
@@ -330,10 +299,7 @@ const frequencyLabel = (f: string) =>
     font-size: 0.95rem;
     transition: all 0.2s;
 
-    &.active {
-      background: #333;
-      color: #fff;
-    }
+    &.active { background: #333; color: #fff; }
 
     @media (min-width: 768px) {
       padding: 12px 52px;
@@ -350,7 +316,6 @@ const frequencyLabel = (f: string) =>
   }
 }
 
-// ─── Amount display ───────────────────────────────────────────────────────────
 .amount-display {
   width: 100%;
   text-align: center;
@@ -380,10 +345,9 @@ const frequencyLabel = (f: string) =>
       transform: scale(1.04);
       .value { color: #a698c4; }
 
-      // On desktop the keypad is always visible — no need for active indicator
       @media (min-width: 768px) {
         transform: none;
-        .value { color: #000; }
+        .value { color: #a698c4; }
       }
     }
 
@@ -401,25 +365,10 @@ const frequencyLabel = (f: string) =>
       display: flex;
       align-items: center;
       transition: color 0.2s ease;
-
-      .cursor {
-        font-weight: 300;
-        color: #a698c4;
-        animation: blink 1s step-end infinite;
-        margin-left: 2px;
-
-        @media (min-width: 768px) { display: none; }
-      }
     }
   }
 }
 
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
-}
-
-// ─── Category slider ──────────────────────────────────────────────────────────
 .slider-container {
   display: flex;
   align-items: center;
@@ -427,7 +376,7 @@ const frequencyLabel = (f: string) =>
 }
 
 .slider-arrow {
-  display: flex; // visible on both mobile and desktop
+  display: flex;
   background: none;
   border: none;
   border-radius: 50%;
@@ -458,8 +407,8 @@ const frequencyLabel = (f: string) =>
 .categories-slider {
   display: flex;
   overflow-x: auto;
-  flex: 1; // take remaining space between the two arrows
-  min-width: 0; // allow shrinking
+  flex: 1;
+  min-width: 0;
   padding: 6px 4px;
   gap: 12px;
   scrollbar-width: none;
@@ -469,10 +418,7 @@ const frequencyLabel = (f: string) =>
 
   &::-webkit-scrollbar { display: none; }
 
-  @media (min-width: 768px) {
-    justify-content: center;
-    gap: 20px;
-  }
+  @media (min-width: 768px) { gap: 20px; }
 }
 
 .category-item {
@@ -509,31 +455,27 @@ const frequencyLabel = (f: string) =>
     justify-content: center;
     color: #444;
     transition: all 0.25s ease;
-    border: 1px solid rgba(0,0,0,0.05);
+    border: 1px solid rgba(0, 0, 0, 0.05);
 
     .category-icon { width: 24px; height: 24px; }
 
     @media (min-width: 768px) {
       width: 55px;
       height: 55px;
-      background: rgba(255,255,255,0.35);
+      background: rgba(255, 255, 255, 0.35);
       .category-icon { width: 28px; height: 28px; }
     }
   }
 
-  .cat-name {
-    font-size: 0.72rem;
-    color: #333;
-  }
+  .cat-name { font-size: 0.72rem; color: #333; }
 }
 
-// ─── Concept input ────────────────────────────────────────────────────────────
 .concept-section {
   .concept-input-wrapper {
     background: #fff;
     padding: 4px 16px;
     border-radius: 14px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   }
 
   .concept-input {
@@ -544,12 +486,10 @@ const frequencyLabel = (f: string) =>
     font-size: 0.95rem;
     color: #333;
     background: transparent;
-
     &::placeholder { color: #aaa; }
   }
 }
 
-// ─── Section cards (recurring / split) ───────────────────────────────────────
 .section-card {
   background: #f7f7f7;
   border-radius: 18px;
@@ -558,12 +498,12 @@ const frequencyLabel = (f: string) =>
 
   &.is-active {
     background: #fff;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   }
 
   @media (min-width: 768px) {
-    background: rgba(255,255,255,0.4);
-    &.is-active { background: rgba(255,255,255,0.6); }
+    background: rgba(255, 255, 255, 0.4);
+    &.is-active { background: rgba(255, 255, 255, 0.6); }
   }
 }
 
@@ -583,7 +523,6 @@ const frequencyLabel = (f: string) =>
   gap: 14px;
 }
 
-// ─── Toggle switch ────────────────────────────────────────────────────────────
 .switch {
   position: relative;
   display: inline-block;
@@ -618,11 +557,10 @@ const frequencyLabel = (f: string) =>
   input:checked + .slider:before { transform: translateX(22px); }
 }
 
-// ─── Segment controls ─────────────────────────────────────────────────────────
 .segment-control {
   background: #f2f2f7;
   padding: 4px;
-  border-radius: 12px;
+  border-radius: 30px;
   display: flex;
   gap: 4px;
 
@@ -631,7 +569,7 @@ const frequencyLabel = (f: string) =>
     border: none;
     background: transparent;
     padding: 8px 0;
-    border-radius: 10px;
+    border-radius: 30px;
     font-size: 0.83rem;
     color: #666;
     cursor: pointer;
@@ -641,7 +579,7 @@ const frequencyLabel = (f: string) =>
     &.active {
       background: #555;
       color: #fff;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.12);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
     }
   }
 }
@@ -677,7 +615,7 @@ const frequencyLabel = (f: string) =>
   margin: 0;
 
   &.info-text {
-    background: rgba(166,152,196,0.07);
+    background: rgba(166, 152, 196, 0.07);
     padding: 10px 12px;
     border-radius: 8px;
     border-left: 3px solid #a698c4;
@@ -705,13 +643,13 @@ const frequencyLabel = (f: string) =>
   }
 }
 
-// ─── Split members ────────────────────────────────────────────────────────────
 .split-section {
   .split-header-text {
     display: flex;
     flex-direction: column;
     gap: 2px;
   }
+
   .edit-warning {
     font-size: 0.68rem;
     color: #e74c3c;
@@ -722,7 +660,6 @@ const frequencyLabel = (f: string) =>
 }
 
 .split-members-list { display: flex; flex-direction: column; gap: 12px; }
-
 .split-member-item { display: flex; flex-direction: column; gap: 10px; }
 
 .member-top-row {
@@ -736,15 +673,33 @@ const frequencyLabel = (f: string) =>
 .member-avatar {
   width: 32px;
   height: 32px;
-  border-radius: 10px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
-  font-size: 0.85rem;
+
+  .member-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .member-avatar-fallback {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    border-radius: 50%;
+  }
 }
 
-.member-name, .member-calculated { font-size: 0.92rem; font-weight: 500; color: #333; }
+.member-name,
+.member-calculated { font-size: 0.92rem; font-weight: 500; color: #333; }
 
 .member-input-control {
   display: flex;
@@ -781,11 +736,12 @@ const frequencyLabel = (f: string) =>
 
     &::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 16px; height: 16px;
+      width: 16px;
+      height: 16px;
       border-radius: 50%;
       background: #777;
       border: 2px solid #fff;
-      box-shadow: 0 0 4px rgba(0,0,0,0.2);
+      box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
       cursor: pointer;
     }
   }
@@ -802,7 +758,6 @@ const frequencyLabel = (f: string) =>
 
 .member-divider { height: 1px; background: #eee; }
 
-// ─── Mobile save button ───────────────────────────────────────────────────────
 .mobile-save-btn {
   display: block;
   width: 100%;
@@ -819,9 +774,6 @@ const frequencyLabel = (f: string) =>
 
   &:active { transform: scale(0.98); background: #555; }
 
-  // Hide on desktop — keypad panel has its own save button
-  @media (min-width: 768px) {
-    display: none;
-  }
+  @media (min-width: 768px) { display: none; }
 }
 </style>

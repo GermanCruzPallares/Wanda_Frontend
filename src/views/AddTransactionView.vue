@@ -10,6 +10,7 @@ import TopNav from '@/components/Navs/TopNav.vue'
 import BottomNav from '@/components/Navs/BottomNav.vue'
 import TransactionFormPanel from '@/components/TransactionFormPanel.vue'
 import KeypadPanel from '@/components/KeypadPanel.vue'
+import { getAvatarDataUrl } from '@/components/icons/AvatarIcons'
 
 const props = defineProps<{ transactionId?: number }>()
 
@@ -35,6 +36,7 @@ const duration = ref<'defined' | 'indefinite'>('defined')
 const endDate = ref('')
 const objectiveId = ref(0)
 const keypadOpen = ref(false)
+const memberAvatars = ref<Map<number, string>>(new Map())
 
 // ─── Split state ──────────────────────────────────────────────────────────────
 const isSplit = ref(false)
@@ -135,16 +137,29 @@ watch(parsedAmount, () => {
   validateSplits()
 })
 watch(isSplit, validateSplits)
-watch(activeAccount, (newAcc) => {
+watch(activeAccount, async (newAcc) => {
   if (newAcc && newAcc.account_type === 'joint') {
-    userStore.getAccountUsers(newAcc.account_id).then((users) => {
-      accountMembers.value = users
-      initializeSplits()
-    })
+    const users = await userStore.getAccountUsers(newAcc.account_id)
+    accountMembers.value = users
+    initializeSplits()
+
+    const avatarMap = new Map<number, string>()
+    await Promise.all(
+      users.map(async (member) => {
+        const userAccounts = await userStore.fetchUserAccounts(member.user_id)
+        const personalAccount = userAccounts.find(a => a.account_type === 'personal')
+        avatarMap.set(
+          member.user_id,
+          personalAccount?.account_picture_url || getAvatarDataUrl('personal')
+        )
+      })
+    )
+    memberAvatars.value = avatarMap
   } else {
     isSplit.value = false
     accountMembers.value = []
     splitValues.value = {}
+    memberAvatars.value = new Map()
   }
 }, { immediate: true })
 
@@ -289,6 +304,7 @@ watch(() => props.transactionId, (newId) => { if (newId) loadTransactionData(new
         :is-split="isSplit"
         :split-mode="splitMode"
         :account-members="accountMembers"
+        :member-avatars="memberAvatars"
         :split-values="splitValues"
         :members-error="membersError"
         :active-account="activeAccount"
