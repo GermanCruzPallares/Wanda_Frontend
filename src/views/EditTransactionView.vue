@@ -235,8 +235,6 @@ const save = async () => {
 
   const categoryName = categories.value.find((c) => c.id === selectedCategory.value)?.name || 'Varios'
   const transactionData = {
-    user_id: userStore.userId!,
-    objective_id: objectiveId.value,
     category: categoryName,
     amount: parsedAmount.value,
     transaction_type: type.value,
@@ -338,6 +336,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
         @update-split-value="updateSplitValue"
         @open-keypad="keypadOpen = true"
         @close-keypad="keypadOpen = false"
+        @save="save"
       />
 
       <KeypadPanel
@@ -387,14 +386,15 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
   top: 0;
   z-index: 100;
   width: 100%;
-  height: calc(56px + env(safe-area-inset-top));
-  padding: calc(8px + env(safe-area-inset-top)) 8px 8px;
-  background: #f2f2f2;
+  min-height: calc(85px + env(safe-area-inset-top));
+  padding: calc(16px + env(safe-area-inset-top)) 20px 16px 20px;
+  background: #e5e5e5;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 1px 0 rgba(0,0,0,0.08);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .nav-title {

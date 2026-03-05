@@ -83,13 +83,13 @@ const saveLabel = props.transactionId ? 'Guardar cambios' : 'Guardar'
   z-index: 1200;
   border-radius: 22px 22px 0 0;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.18);
-  max-height: 60vh;
-  padding: 0 20px calc(72px + env(safe-area-inset-bottom)) 20px;
+  max-height: 48vh;
+  padding: 0 20px calc(80px + env(safe-area-inset-bottom)) 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
   transition: transform 0.32s cubic-bezier(0.25, 1, 0.5, 1);
-  transform: translateY(calc(100% - 1px));
+  transform: translateY(100%);
 
   &.is-open {
     transform: translateY(0);
@@ -105,8 +105,8 @@ const saveLabel = props.transactionId ? 'Guardar cambios' : 'Guardar'
   // ─── Desktop: right column, always visible ────────────────────────────────
   @media (min-width: 768px) {
     position: relative;
-    width: 30vw;
-    
+    width: 420px;
+    min-width: 420px;
     max-height: none;
     height: 100vh;
     border-radius: 0;
@@ -148,7 +148,7 @@ const saveLabel = props.transactionId ? 'Guardar cambios' : 'Guardar'
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
   width: 100%;
-  max-width: 210px;
+  max-width: 180px;
   margin-bottom: 10px;
 
   button {
@@ -157,7 +157,7 @@ const saveLabel = props.transactionId ? 'Guardar cambios' : 'Guardar'
     border-radius: 50%;
     background: #5c5c64;
     border: none;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     color: #fff;
     display: flex;
     align-items: center;
@@ -184,27 +184,26 @@ const saveLabel = props.transactionId ? 'Guardar cambios' : 'Guardar'
 
 // ─── Save button ──────────────────────────────────────────────────────────────
 .save-btn {
-  background: #333;
-  color: #fff;
-  border: none;
-  height: 48px;
-  width: 100%;
-  max-width: 240px;
-  border-radius: 30px;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
-  flex-shrink: 0;
-  transition: transform 0.15s;
-
-  &:active { transform: scale(0.97); }
+  // Mobile: hidden — save button is in the form panel instead
+  display: none;
 
   @media (min-width: 768px) {
-    height: 52px;
-    font-size: 1.1rem;
+    display: block;
     background: #3c3c3c;
+    color: #fff;
+    border: none;
+    height: 52px;
+    width: 100%;
     max-width: 240px;
+    border-radius: 30px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+    flex-shrink: 0;
+    transition: transform 0.15s;
+
+    &:active { transform: scale(0.97); }
   }
 }
 </style>

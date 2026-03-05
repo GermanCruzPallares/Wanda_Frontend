@@ -7,6 +7,7 @@ import type { User } from '@/types/models'
 // ─── Props ───────────────────────────────────────────────────────────────────
 const props = defineProps<{
   transactionId?: number
+  fixedNav?: boolean // true when parent uses position:fixed TopNav (AddTransactionView)
   type: 'expense' | 'income' | 'saving'
   amount: string
   categories: { id: number; name: string }[]
@@ -39,6 +40,7 @@ const emit = defineEmits<{
   'updateSplitValue': [userId: number, field: 'percentage' | 'amount', val: number]
   'openKeypad': []
   'closeKeypad': []
+  'save': []
 }>()
 
 // ─── Category slider ──────────────────────────────────────────────────────────
@@ -63,7 +65,11 @@ const frequencyLabel = (f: string) =>
 </script>
 
 <template>
-  <div class="form-panel" :class="{ 'keypad-open': keypadOpen }">
+  <div
+    class="form-panel"
+    :class="{ 'keypad-open': keypadOpen }"
+    :style="fixedNav ? { paddingTop: 'calc(85px + env(safe-area-inset-top) + 12px)' } : {}"
+  >
     <div class="form-inner">
 
       <!-- Type selector -->
@@ -237,6 +243,11 @@ const frequencyLabel = (f: string) =>
         </div>
       </div>
 
+      <!-- Mobile save button — only visible when TopNav/BottomNav are shown -->
+      <button class="mobile-save-btn" @click="emit('save')">
+        Guardar
+      </button>
+
     </div>
   </div>
 </template>
@@ -249,8 +260,7 @@ const frequencyLabel = (f: string) =>
   -webkit-overflow-scrolling: touch;
   background: #ffffff;
 
-  // Mobile: TopNav height (64px) + safe area inset + extra breathing room
-  padding-top: calc(64px + env(safe-area-inset-top) + 12px);
+  padding-top: 12px;
   padding-bottom: 60px; // just enough for the keypad peek handle
 
   &.keypad-open {
@@ -779,4 +789,27 @@ const frequencyLabel = (f: string) =>
 }
 
 .member-divider { height: 1px; background: #eee; }
+
+// ─── Mobile save button ───────────────────────────────────────────────────────
+.mobile-save-btn {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  margin-top: 8px;
+  background: #333;
+  color: #fff;
+  border: none;
+  border-radius: 30px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s, background 0.15s;
+
+  &:active { transform: scale(0.98); background: #555; }
+
+  // Hide on desktop — keypad panel has its own save button
+  @media (min-width: 768px) {
+    display: none;
+  }
+}
 </style>

@@ -209,9 +209,9 @@ const save = async () => {
   if (isSplit.value && !validateSplits()) { showToast('Los importes introducidos no suman el 100% del importe', 'error'); return }
 
   const categoryName = categories.value.find((c) => c.id === selectedCategory.value)?.name || 'Varios'
-  const transactionData = {
-    user_id: userStore.userId!,
-    objective_id: objectiveId.value,
+
+  // Shared fields accepted by both create and update
+  const sharedPayload = {
     category: categoryName,
     amount: parsedAmount.value,
     transaction_type: type.value,
@@ -226,10 +226,17 @@ const save = async () => {
       : undefined,
   }
 
+  // Create needs user_id and objective_id, update does not
+  const createPayload = {
+    ...sharedPayload,
+    user_id: userStore.userId!,
+    objective_id: objectiveId.value,
+  }
+
   try {
     const success = props.transactionId
-      ? await transactionStore.updateTransaction(props.transactionId, transactionData)
-      : await transactionStore.createTransaction(activeAccount.value.account_id, transactionData)
+      ? await transactionStore.updateTransaction(props.transactionId, sharedPayload)
+      : await transactionStore.createTransaction(activeAccount.value.account_id, createPayload)
 
     if (success) {
       showToast(props.transactionId ? 'Transacción actualizada' : 'Transacción guardada con éxito', 'success')
@@ -253,6 +260,8 @@ onMounted(async () => {
   }
   if (props.transactionId) loadTransactionData(props.transactionId)
   window.addEventListener('keydown', handleKeydown)
+  // Open keypad by default so user can enter amount immediately
+  keypadOpen.value = true
 })
 
 onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
@@ -284,6 +293,7 @@ watch(() => props.transactionId, (newId) => { if (newId) loadTransactionData(new
         :members-error="membersError"
         :active-account="activeAccount"
         :keypad-open="keypadOpen"
+        :fixed-nav="true"
         @update:type="type = $event"
         @update:selected-category="selectedCategory = $event"
         @update:concept-text="conceptText = $event"
@@ -296,6 +306,7 @@ watch(() => props.transactionId, (newId) => { if (newId) loadTransactionData(new
         @update-split-value="updateSplitValue"
         @open-keypad="keypadOpen = true"
         @close-keypad="keypadOpen = false"
+        @save="save"
       />
 
       <KeypadPanel
