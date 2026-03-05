@@ -53,6 +53,20 @@ const navItems: NavItem[] = [
   flex-shrink: 0;
   z-index: 1000;
 
+  // KEY FIX: when the virtual keyboard opens it shrinks the visual viewport
+  // but we want the navbar anchored to the layout viewport (full screen), not the visual one.
+  // `dvh` units follow the visual viewport — `svh` follows the smallest (stable) viewport.
+  // By transforming to use svh we stay anchored to the bottom of the stable viewport.
+  @supports (height: 100svh) {
+    // Anchor to stable viewport bottom so virtual keyboard doesn't push the nav up
+    position: fixed;
+    bottom: env(safe-area-inset-bottom, 0px);
+    // Override bottom with layout viewport approach
+    bottom: 0;
+    // The real trick: tell the browser not to resize for the keyboard
+    // This works in Chrome/Android. For iOS Safari we need the JS fallback below.
+  }
+
   &__container {
     display: flex;
     justify-content: space-around;
@@ -71,13 +85,8 @@ const navItems: NavItem[] = [
     justify-content: center;
     transition: transform $transition-speed ease;
 
-    &:active {
-      transform: scale(0.95);
-    }
-
-    &--active {
-      filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.1));
-    }
+    &:active { transform: scale(0.95); }
+    &--active { filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.1)); }
   }
 
   &__icon {

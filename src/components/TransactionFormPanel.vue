@@ -261,10 +261,14 @@ const frequencyLabel = (f: string) =>
   background: #ffffff;
 
   padding-top: 12px;
-  padding-bottom: 60px; // just enough for the keypad peek handle
+  padding-bottom: 60px;
 
   &.keypad-open {
-    padding-bottom: 280px; // room when keypad fully open
+    // Extra padding only on mobile so content scrolls above the open keypad
+    // On desktop the keypad is a fixed column — no padding needed
+    @media (max-width: 767px) {
+      padding-bottom: 280px;
+    }
   }
 
   @media (min-width: 768px) {
@@ -375,6 +379,12 @@ const frequencyLabel = (f: string) =>
     &.is-active {
       transform: scale(1.04);
       .value { color: #a698c4; }
+
+      // On desktop the keypad is always visible — no need for active indicator
+      @media (min-width: 768px) {
+        transform: none;
+        .value { color: #000; }
+      }
     }
 
     .currency {
@@ -397,6 +407,8 @@ const frequencyLabel = (f: string) =>
         color: #a698c4;
         animation: blink 1s step-end infinite;
         margin-left: 2px;
+
+        @media (min-width: 768px) { display: none; }
       }
     }
   }
@@ -794,12 +806,12 @@ const frequencyLabel = (f: string) =>
 .mobile-save-btn {
   display: block;
   width: 100%;
-  padding: 12px;
+  padding: 16px;
   margin-top: 8px;
   background: #333;
   color: #fff;
   border: none;
-  border-radius: 30px;
+  border-radius: 16px;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
