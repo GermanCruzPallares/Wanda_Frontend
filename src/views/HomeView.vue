@@ -47,6 +47,8 @@ const transactionToDelete = ref<Transaction | null>(null)
 const isDeleting = ref(false)
 
 const showInfoModal = ref(false)
+const infoModalTitle = ref('')
+const infoModalContent = ref('')
 
 // ==================== HELPERS ====================
 
@@ -94,21 +96,26 @@ const handleAddObjective = () => {
 }
 
 const handleTransactionClick = (transaction: Transaction) => {
-  // Transacciones espejo — no editables
   if (isMirrorTransaction(transaction)) {
+    infoModalTitle.value = 'Transacción no editable'
+    infoModalContent.value = 'Esta transacción es un reflejo automático de un gasto realizado en tu cuenta conjunta. Para modificarla, edita la transacción original desde la cuenta conjunta.'
     showInfoModal.value = true
     return
   }
 
-  // Transacciones divididas — mostrar modal de eliminación
   if (transaction.split_type === 'divided') {
     transactionToDelete.value = transaction
     showDeleteModal.value = true
     return
   }
 
-  // Resto — navegar a editar
   router.push(`/edit-transaction/${transaction.transaction_id}`)
+}
+
+const handleSettledClick = () => {
+  infoModalTitle.value = 'Transacción bloqueada'
+  infoModalContent.value = 'Esta transacción no puede eliminarse porque uno o más miembros ya han pagado su parte de la deuda asociada.'
+  showInfoModal.value = true
 }
 
 const confirmDeleteTransaction = async () => {
@@ -171,22 +178,20 @@ const confirmDeleteTransaction = async () => {
           :initial-limit="5"
           :load-more-increment="10"
           @transaction-click="handleTransactionClick"
-          @settled-transaction-click="showInfoModal = true"
+          @settled-transaction-click="handleSettledClick"
           @transactions-loaded="handleTransactionsLoaded"
         />
       </div>
     </div>
   </main>
 
-  <!-- Modal transacción espejo -->
   <InfoModal
     :is-open="showInfoModal"
-    title="Transacción no editable"
-    content="Esta transacción es un reflejo automático de un gasto realizado en tu cuenta conjunta. Para modificarla, edita la transacción original desde la cuenta conjunta."
+    :title="infoModalTitle"
+    :content="infoModalContent"
     @close="showInfoModal = false"
   />
 
-  <!-- Modal eliminar transacción dividida -->
   <SharedTransactionDeleteModal
     :is-open="showDeleteModal"
     :transaction="transactionToDelete"

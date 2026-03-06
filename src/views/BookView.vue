@@ -23,9 +23,13 @@
           :member-avatars="memberAvatars" @row-click="handleRowClick" />
       </div>
     </main>
-    <InfoModal :is-open="showInfoModal" title="Transacción no editable"
-      content="Esta transacción no puede editarse ni eliminarse porque es un reflejo automático de un gasto conjunto, o porque la deuda asociada ya ha sido saldada."
-      @close="showInfoModal = false" />
+
+    <InfoModal
+      :is-open="showInfoModal"
+      :title="infoModalTitle"
+      :content="infoModalContent"
+      @close="showInfoModal = false"
+    />
 
     <SharedTransactionDeleteModal :is-open="showDeleteModal" :transaction="transactionToDelete"
       :is-deleting="isDeleting" @close="showDeleteModal = false" @confirm="confirmDeleteTransaction" />
@@ -44,6 +48,7 @@ import { useAccountStore } from '@/stores/AccountStore'
 import TopNav from '@/components/Navs/TopNav.vue'
 import AsideNav from '@/components/Navs/AsideNav.vue'
 import SharedTransactionDeleteModal from '@/components/Modals/SharedTransactionDeleteModal.vue'
+import InfoModal from '@/components/Modals/InfoModal.vue'
 import BottomNav from '@/components/Navs/BottomNav.vue'
 import MonthSelectorComponent from '@/components/BookView/MonthlySelectorComponent.vue'
 import MonthlySummaryComponent from '@/components/BookView/MonthlySummaryComponent.vue'
@@ -52,19 +57,7 @@ import type { TransactionFilters } from '@/components/BookView/TransactionFilter
 import TransactionTableComponent from '@/components/BookView/TransactionTableComponent.vue'
 import { useToast } from '@/composables/useToast'
 import type { Transaction, TransactionSplit, AccountUI, User } from '@/types/models'
-import InfoModal from '@/components/Modals/InfoModal.vue'
-
-const showInfoModal = ref(false)
-
-const MIRROR_PREFIXES = ['(Gasto Compartido)', '(Aportación Conjunta)', '(Aportacion Conjunta)']
-
-const isMirrorTransaction = (transaction: Transaction): boolean =>
-  MIRROR_PREFIXES.some(prefix => (transaction.concept ?? '').startsWith(prefix))
-
 import { getAvatarDataUrl } from '@/components/icons/AvatarIcons'
-
-
-const memberAvatars = ref<Map<number, string>>(new Map())
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -81,6 +74,7 @@ const isLoading = ref(false)
 const allTransactions = ref<Transaction[]>([])
 const accountMembers = ref<User[]>([])
 const allSplits = ref<TransactionSplit[]>([])
+const memberAvatars = ref<Map<number, string>>(new Map())
 
 const activeFilters = ref<TransactionFilters>({
   search: '',
@@ -95,6 +89,17 @@ const showDeleteModal = ref(false)
 const transactionToDelete = ref<Transaction | null>(null)
 const isDeleting = ref(false)
 
+const showInfoModal = ref(false)
+const infoModalTitle = ref('')
+const infoModalContent = ref('')
+
+// ==================== HELPERS ====================
+
+const MIRROR_PREFIXES = ['(Gasto Compartido)', '(Aportación Conjunta)', '(Aportacion Conjunta)']
+
+const isMirrorTransaction = (transaction: Transaction): boolean =>
+  MIRROR_PREFIXES.some(prefix => (transaction.concept ?? '').startsWith(prefix))
+
 // ==================== COMPUTED ====================
 
 const accounts = computed<AccountUI[]>(() =>
@@ -106,7 +111,6 @@ const accounts = computed<AccountUI[]>(() =>
 
 const activeAccount = computed(() => accounts.value.find((acc) => acc.isActive))
 
-// Filtrar transacciones por el mes/año seleccionado
 const monthTransactions = computed<Transaction[]>(() => {
   const { month, year } = selectedPeriod.value
   return allTransactions.value.filter((t) => {
@@ -115,7 +119,6 @@ const monthTransactions = computed<Transaction[]>(() => {
   })
 })
 
-// Splits de las transacciones visibles en el mes actual
 const monthSplits = computed<TransactionSplit[]>(() => {
   const ids = new Set(monthTransactions.value.map((t) => t.transaction_id))
   return allSplits.value.filter((s) => ids.has(s.transaction_id))
@@ -136,40 +139,38 @@ const monthlyExpense = computed(() =>
 // ==================== MÉTODOS ====================
 
 const loadTransactions = async (accountId: number) => {
-  isLoading.value = true;
+  isLoading.value = true
   try {
-    allTransactions.value = await transactionStore.fetchTransactions(accountId);
+    allTransactions.value = await transactionStore.fetchTransactions(accountId)
 
     if (activeAccount.value?.account_type === 'joint') {
-      allSplits.value = await splitStore.fetchAccountSplits(accountId);
-      accountMembers.value = await accountStore.fetchAccountMembers(accountId);
+      allSplits.value = await splitStore.fetchAccountSplits(accountId)
+      accountMembers.value = await accountStore.fetchAccountMembers(accountId)
 
-      // Cargar avatares
-      const avatarMap = new Map<number, string>();
+      const avatarMap = new Map<number, string>()
       await Promise.all(
         accountMembers.value.map(async (member) => {
-          const userAccounts = await userStore.fetchUserAccounts(member.user_id);
-          const personalAccount = userAccounts.find(a => a.account_type === 'personal');
+          const userAccounts = await userStore.fetchUserAccounts(member.user_id)
+          const personalAccount = userAccounts.find(a => a.account_type === 'personal')
           avatarMap.set(
             member.user_id,
             personalAccount?.account_picture_url || getAvatarDataUrl('personal')
-          );
+          )
         })
-      );
-      memberAvatars.value = avatarMap;
+      )
+      memberAvatars.value = avatarMap
     } else {
-      allSplits.value = [];
-      memberAvatars.value = new Map();
+      allSplits.value = []
+      memberAvatars.value = new Map()
     }
   } catch (error) {
-    console.error('❌ Error cargando transacciones:', error);
+    console.error('❌ Error cargando transacciones:', error)
   } finally {
-    isLoading.value = false;
+    isLoading.value = false
   }
-};
+}
 
 const onPeriodChange = () => {
-  // Resetear filtros al cambiar de mes
   activeFilters.value = {
     search: '',
     types: [],
@@ -182,6 +183,8 @@ const onPeriodChange = () => {
 
 const handleRowClick = (transaction: Transaction) => {
   if (isMirrorTransaction(transaction)) {
+    infoModalTitle.value = 'Transacción no editable'
+    infoModalContent.value = 'Esta transacción es un reflejo automático de un gasto realizado en tu cuenta conjunta. Para modificarla, edita la transacción original desde la cuenta conjunta.'
     showInfoModal.value = true
     return
   }
@@ -189,6 +192,8 @@ const handleRowClick = (transaction: Transaction) => {
   if (transaction.split_type === 'divided') {
     const txSplits = allSplits.value.filter(s => s.transaction_id === transaction.transaction_id)
     if (txSplits.some(s => s.status === 'settled')) {
+      infoModalTitle.value = 'Transacción bloqueada'
+      infoModalContent.value = 'Esta transacción no puede eliminarse porque uno o más miembros ya han pagado su parte de la deuda asociada.'
       showInfoModal.value = true
       return
     }

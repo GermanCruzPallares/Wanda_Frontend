@@ -9,6 +9,7 @@ import BottomNav from '@/components/Navs/BottomNav.vue'
 import TopNav from '@/components/Navs/TopNav.vue'
 import AsideNav from '@/components/Navs/AsideNav.vue'
 import SharedTransactionDeleteModal from '@/components/Modals/SharedTransactionDeleteModal.vue'
+import InfoModal from '@/components/Modals/InfoModal.vue'
 import AccountsComponent from '@/components/Profile/AccountsComponent.vue'
 import BudgetComponent from '@/components/Profile/BudgetComponent.vue'
 import ObjContribution from '@/components/Profile/ObjContribution.vue'
@@ -17,7 +18,6 @@ import TransactionCard from '@/components/HomeApp/TransactionCard.vue'
 import { useToast } from '@/composables/useToast'
 import type { AccountUI, Transaction, TransactionSplit, User } from '@/types/models'
 import { getAvatarDataUrl } from '@/components/icons/AvatarIcons'
-import InfoModal from '@/components/Modals/InfoModal.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -25,7 +25,6 @@ const transactionStore = useTransactionStore()
 const splitStore = useTransactionSplitStore()
 const accountStore = useAccountStore()
 const { showToast } = useToast()
-const showInfoModal = ref(false)
 
 // ==================== COMPUTED ====================
 
@@ -53,13 +52,25 @@ const members = ref<User[]>([])
 const splits = ref<TransactionSplit[]>([])
 const isLoadingTransactions = ref(false)
 
-// Controles "Ver más / Ver menos"
 const showAllExpenses = ref(false)
 const showAllIncomes = ref(false)
 
 const showDeleteModal = ref(false)
 const transactionToDelete = ref<Transaction | null>(null)
 const isDeleting = ref(false)
+
+const showInfoModal = ref(false)
+const infoModalTitle = ref('')
+const infoModalContent = ref('')
+
+// ==================== HELPERS ====================
+
+const MIRROR_PREFIXES = ['(Gasto Compartido)', '(Aportación Conjunta)', '(Aportacion Conjunta)']
+
+const isMirrorTransaction = (transaction: Transaction): boolean => {
+  const concept = transaction.concept ?? ''
+  return MIRROR_PREFIXES.some(prefix => concept.startsWith(prefix))
+}
 
 // ==================== TRANSACCIONES FRECUENTES ====================
 
@@ -103,7 +114,6 @@ const loadRecurringData = async (accountId: number) => {
       ])
       members.value = fetchedMembers
       splits.value = fetchedSplits
-
 
       const avatarMap = new Map<number, string>()
       await Promise.all(
@@ -166,15 +176,10 @@ watch(
 
 // ==================== HANDLERS ====================
 
-const MIRROR_PREFIXES = ['(Gasto Compartido)', '(Aportación Conjunta)', '(Aportacion Conjunta)']
-
-const isMirrorTransaction = (transaction: Transaction): boolean => {
-  const concept = transaction.concept ?? ''
-  return MIRROR_PREFIXES.some(prefix => concept.startsWith(prefix))
-}
-
 const handleTransactionClick = (transaction: Transaction) => {
   if (isMirrorTransaction(transaction)) {
+    infoModalTitle.value = 'Transacción no editable'
+    infoModalContent.value = 'Esta transacción es un reflejo automático de un gasto realizado en tu cuenta conjunta. Para modificarla, edita la transacción original desde la cuenta conjunta.'
     showInfoModal.value = true
     return
   }
@@ -182,6 +187,8 @@ const handleTransactionClick = (transaction: Transaction) => {
   if (transaction.split_type === 'divided') {
     const txSplits = getSplitsForTransaction(transaction.transaction_id)
     if (txSplits.some(s => s.status === 'settled')) {
+      infoModalTitle.value = 'Transacción bloqueada'
+      infoModalContent.value = 'Esta transacción no puede eliminarse porque uno o más miembros ya han pagado su parte de la deuda asociada.'
       showInfoModal.value = true
       return
     }
@@ -233,7 +240,6 @@ const confirmDeleteTransaction = async () => {
     <div class="profile-content__grid">
       <div class="profile-content__left">
         <BudgetComponent v-if="activeAccount" :account-id="activeAccount.account_id" />
-
         <ObjContribution v-if="activeAccount" :account-id="activeAccount.account_id" />
       </div>
 
@@ -243,10 +249,16 @@ const confirmDeleteTransaction = async () => {
           <SectionTitle :title="`| Gastos Frecuentes (${recurringExpenses.length})`" />
 
           <div class="profile-recurring__list">
-            <TransactionCard v-for="transaction in displayedExpenses" :key="transaction.transaction_id"
-              :transaction="transaction" :is-joint="isJoint" :members="members"
-              :splits="getSplitsForTransaction(transaction.transaction_id)" :member-avatars="memberAvatars"
-              @click="handleTransactionClick" />
+            <TransactionCard
+              v-for="transaction in displayedExpenses"
+              :key="transaction.transaction_id"
+              :transaction="transaction"
+              :is-joint="isJoint"
+              :members="members"
+              :splits="getSplitsForTransaction(transaction.transaction_id)"
+              :member-avatars="memberAvatars"
+              @click="handleTransactionClick"
+            />
 
             <div v-if="recurringExpenses.length === 0" class="profile-recurring__empty">
               <p>No hay gastos frecuentes registrados</p>
@@ -268,10 +280,16 @@ const confirmDeleteTransaction = async () => {
           <SectionTitle :title="`| Ingresos Frecuentes (${recurringIncomes.length})`" />
 
           <div class="profile-recurring__list">
-            <TransactionCard v-for="transaction in displayedIncomes" :key="transaction.transaction_id"
-              :transaction="transaction" :is-joint="isJoint" :members="members"
-              :splits="getSplitsForTransaction(transaction.transaction_id)" :member-avatars="memberAvatars"
-              @click="handleTransactionClick" />
+            <TransactionCard
+              v-for="transaction in displayedIncomes"
+              :key="transaction.transaction_id"
+              :transaction="transaction"
+              :is-joint="isJoint"
+              :members="members"
+              :splits="getSplitsForTransaction(transaction.transaction_id)"
+              :member-avatars="memberAvatars"
+              @click="handleTransactionClick"
+            />
 
             <div v-if="recurringIncomes.length === 0" class="profile-recurring__empty">
               <p>No hay ingresos frecuentes registrados</p>
@@ -291,8 +309,20 @@ const confirmDeleteTransaction = async () => {
     </div>
   </main>
 
-  <SharedTransactionDeleteModal :is-open="showDeleteModal" :transaction="transactionToDelete" :is-deleting="isDeleting"
-    @close="showDeleteModal = false" @confirm="confirmDeleteTransaction" />
+  <InfoModal
+    :is-open="showInfoModal"
+    :title="infoModalTitle"
+    :content="infoModalContent"
+    @close="showInfoModal = false"
+  />
+
+  <SharedTransactionDeleteModal
+    :is-open="showDeleteModal"
+    :transaction="transactionToDelete"
+    :is-deleting="isDeleting"
+    @close="showDeleteModal = false"
+    @confirm="confirmDeleteTransaction"
+  />
 
   <BottomNav class="mobile-only" />
 </template>
@@ -336,8 +366,6 @@ const confirmDeleteTransaction = async () => {
     gap: 20px;
   }
 }
-
-// ==================== SECCIONES RECURRENTES ====================
 
 .profile-recurring {
   &__list {
