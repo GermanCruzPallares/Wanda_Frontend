@@ -1,6 +1,6 @@
 <template>
-  <div class="month-selector">
-    <button class="month-selector__trigger" @click="toggleDropdown" :class="{ open: isOpen }">
+  <div class="month-selector" @click.stop>
+    <button class="month-selector__trigger" @click.stop="toggleDropdown" :class="{ open: isOpen }">
       <span class="month-selector__label">{{ formattedLabel }}</span>
       <svg
         class="month-selector__chevron"
@@ -15,15 +15,15 @@
     </button>
 
     <Transition name="dropdown">
-      <div v-if="isOpen" class="month-selector__dropdown" v-click-outside="closeDropdown">
+      <div v-if="isOpen" class="month-selector__dropdown" @click.stop>
         <div class="month-selector__year-nav">
-          <button class="year-btn" @click="prevYear">
+          <button class="year-btn" @click.stop="prevYear">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
           <span class="year-label">{{ displayYear }}</span>
-          <button class="year-btn" @click="nextYear" :disabled="displayYear >= currentYear">
+          <button class="year-btn" @click.stop="nextYear" :disabled="displayYear >= currentYear">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -40,7 +40,7 @@
               disabled: isFutureMonth(index, displayYear)
             }"
             :disabled="isFutureMonth(index, displayYear)"
-            @click="selectMonth(index)"
+            @click.stop="selectMonth(index)"
           >
             {{ month.short }}
           </button>
@@ -51,24 +51,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps<{
-  modelValue: { month: number; year: number };
-}>();
+  modelValue: { month: number; year: number }
+}>()
 
 const emit = defineEmits<{
-  'update:modelValue': [value: { month: number; year: number }];
-}>();
+  'update:modelValue': [value: { month: number; year: number }]
+}>()
 
-const isOpen = ref(false);
-const now = new Date();
-const currentYear = now.getFullYear();
-const currentMonth = now.getMonth();
+const isOpen = ref(false)
+const now = new Date()
+const currentYear = now.getFullYear()
+const currentMonth = now.getMonth()
 
-const displayYear = ref(props.modelValue.year);
-const selectedMonth = computed(() => props.modelValue.month);
-const selectedYear = computed(() => props.modelValue.year);
+const displayYear = ref(props.modelValue.year)
+const selectedMonth = computed(() => props.modelValue.month)
+const selectedYear = computed(() => props.modelValue.year)
 
 const months = [
   { short: 'Ene', long: 'Enero' },
@@ -83,43 +83,49 @@ const months = [
   { short: 'Oct', long: 'Octubre' },
   { short: 'Nov', long: 'Noviembre' },
   { short: 'Dic', long: 'Diciembre' },
-];
+]
 
 const formattedLabel = computed(() => {
-  return `${months[selectedMonth.value]?.long}-${selectedYear.value}`;
-});
+  return `${months[selectedMonth.value]?.long}-${selectedYear.value}`
+})
 
 const isFutureMonth = (monthIndex: number, year: number) => {
-  if (year > currentYear) return true;
-  if (year === currentYear && monthIndex > currentMonth) return true;
-  return false;
-};
+  if (year > currentYear) return true
+  if (year === currentYear && monthIndex > currentMonth) return true
+  return false
+}
 
 const prevYear = () => {
-  if (displayYear.value > 2000) displayYear.value--;
-};
+  if (displayYear.value > 2000) displayYear.value--
+}
 
 const nextYear = () => {
-  if (displayYear.value < currentYear) displayYear.value++;
-};
+  if (displayYear.value < currentYear) displayYear.value++
+}
 
 const selectMonth = (monthIndex: number) => {
-  emit('update:modelValue', { month: monthIndex, year: displayYear.value });
-  isOpen.value = false;
-};
+  emit('update:modelValue', { month: monthIndex, year: displayYear.value })
+  isOpen.value = false
+}
 
 const toggleDropdown = () => {
-  isOpen.value = !isOpen.value;
+  isOpen.value = !isOpen.value
   if (isOpen.value) {
-    displayYear.value = selectedYear.value;
+    displayYear.value = selectedYear.value
   }
-};
+}
 
-const closeDropdown = () => {
-  isOpen.value = false;
-};
+const closeDropdown = (e: Event) => {
+  isOpen.value = false
+}
 
+onMounted(() => {
+  document.addEventListener('click', closeDropdown)
+})
 
+onUnmounted(() => {
+  document.removeEventListener('click', closeDropdown)
+})
 </script>
 
 <style scoped lang="scss">

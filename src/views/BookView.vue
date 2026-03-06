@@ -6,7 +6,7 @@
 
     <main class="book-content">
       <div class="book-content__section">
-        <MonthSelectorComponent v-model="selectedPeriod" @update:model-value="onPeriodChange" />
+        <MonthSelectorComponent v-model="selectedPeriod" />
       </div>
 
       <div class="book-content__section">
@@ -170,17 +170,6 @@ const loadTransactions = async (accountId: number) => {
   }
 }
 
-const onPeriodChange = () => {
-  activeFilters.value = {
-    search: '',
-    types: [],
-    categories: [],
-    minAmount: null,
-    maxAmount: null,
-    onlyRecurring: null,
-  }
-}
-
 const handleRowClick = (transaction: Transaction) => {
   if (isMirrorTransaction(transaction)) {
     infoModalTitle.value = 'Transacción no editable'
@@ -250,6 +239,20 @@ onMounted(async () => {
     loadTransactions(activeAccount.value.account_id)
   }
 })
+
+watch(
+  () => `${selectedPeriod.value.month}-${selectedPeriod.value.year}`,
+  () => {
+    activeFilters.value = {
+      search: '',
+      types: [],
+      categories: [],
+      minAmount: null,
+      maxAmount: null,
+      onlyRecurring: null,
+    }
+  }
+)
 
 watch(
   () => activeAccount.value?.account_id,
