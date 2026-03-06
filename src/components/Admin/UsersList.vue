@@ -12,17 +12,17 @@ const currentFilters = ref({ email: '', role: '' });
 // Filtrar usuarios en memoria por rol
 const filteredUsers = computed(() => {
   let users = adminStore.users;
-  
+
   if (currentFilters.value.role) {
     users = users.filter(user => user.role === currentFilters.value.role);
   }
-  
+
   return users;
 });
 
 async function handleFilterChange(filters: { email: string; role: string }) {
   currentFilters.value = filters;
-  
+
   // Buscar por email en el servidor
   await adminStore.fetchAllUsers(filters.email || undefined);
 }
@@ -58,16 +58,14 @@ onMounted(async () => {
 
     <!-- Users Grid -->
     <div v-else class="users-list__grid">
-      <UserCard 
-        v-for="user in filteredUsers" 
-        :key="user.user_id" 
-        :user="user"
-      />
+      <UserCard v-for="user in filteredUsers" :key="user.user_id" :user="user"
+        @deleted="adminStore.users = adminStore.users.filter(u => u.user_id !== $event)" />
     </div>
 
     <!-- Contador de resultados -->
     <div v-if="!adminStore.isLoadingUsers && filteredUsers.length > 0" class="users-list__count">
-      {{ filteredUsers.length }} usuario{{ filteredUsers.length !== 1 ? 's' : '' }} encontrado{{ filteredUsers.length !== 1 ? 's' : '' }}
+      {{ filteredUsers.length }} usuario{{ filteredUsers.length !== 1 ? 's' : '' }} encontrado{{ filteredUsers.length
+        !== 1 ? 's' : '' }}
     </div>
   </div>
 </template>

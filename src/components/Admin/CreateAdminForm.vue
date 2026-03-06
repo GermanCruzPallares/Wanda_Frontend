@@ -38,7 +38,7 @@ async function handleSubmit() {
   if (!isFormValid.value) return;
 
   successMessage.value = '';
-  
+
   const success = await adminStore.createAdmin({
     name: form.value.name.trim(),
     email: form.value.email.trim().toLowerCase(),
@@ -46,15 +46,17 @@ async function handleSubmit() {
   });
 
   if (success) {
-    successMessage.value = `Administrador "${form.value.name}" creado exitosamente`;
-    form.value = { name: '', email: '', password: '' };
-    
+    successMessage.value = `Administrador "${form.value.name}" creado exitosamente`
+    form.value = { name: '', email: '', password: '' }
+
+    await adminStore.fetchAllUsers()  
+
     setTimeout(() => {
-      successMessage.value = '';
-    }, 4000);
-    
+      successMessage.value = ''
+    }, 4000)
+
     if (adminStore.hasStats) {
-      await adminStore.fetchSystemStats();
+      await adminStore.fetchSystemStats()
     }
   }
 }
@@ -86,28 +88,17 @@ function clearError() {
       <!-- Campo Nombre -->
       <div class="create-admin-form__field">
         <label for="admin-name" class="create-admin-form__label">Nombre</label>
-        <input
-          id="admin-name"
-          v-model="form.name"
-          type="text"
-          class="create-admin-form__input"
-          placeholder="Nombre completo"
-          autocomplete="name"
-        />
+        <input id="admin-name" v-model="form.name" type="text" class="create-admin-form__input"
+          placeholder="Nombre completo" autocomplete="name" />
       </div>
 
       <!-- Campo Email -->
       <div class="create-admin-form__field">
         <label for="admin-email" class="create-admin-form__label">Email</label>
-        <input
-          id="admin-email"
-          v-model="form.email"
-          type="email"
-          class="create-admin-form__input"
-          placeholder="correo@ejemplo.com"
-          autocomplete="email"
-        />
-        <span v-if="form.email && !isValidEmail(form.email)" class="create-admin-form__hint create-admin-form__hint--error">
+        <input id="admin-email" v-model="form.email" type="email" class="create-admin-form__input"
+          placeholder="correo@ejemplo.com" autocomplete="email" />
+        <span v-if="form.email && !isValidEmail(form.email)"
+          class="create-admin-form__hint create-admin-form__hint--error">
           Email no válido
         </span>
       </div>
@@ -116,31 +107,26 @@ function clearError() {
       <div class="create-admin-form__field">
         <label for="admin-password" class="create-admin-form__label">Contraseña</label>
         <div class="create-admin-form__input-wrapper">
-          <input
-            id="admin-password"
-            v-model="form.password"
-            :type="showPassword ? 'text' : 'password'"
-            class="create-admin-form__input"
-            placeholder="Mínimo 6 caracteres, 1 mayúscula"
-            autocomplete="new-password"
-          />
-          <button
-            type="button"
-            class="create-admin-form__toggle-password"
-            @click="showPassword = !showPassword"
-            aria-label="Mostrar contraseña"
-          >
-            <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <input id="admin-password" v-model="form.password" :type="showPassword ? 'text' : 'password'"
+            class="create-admin-form__input" placeholder="Mínimo 6 caracteres, 1 mayúscula"
+            autocomplete="new-password" />
+          <button type="button" class="create-admin-form__toggle-password" @click="showPassword = !showPassword"
+            aria-label="Mostrar contraseña">
+            <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
               <circle cx="12" cy="12" r="3"></circle>
             </svg>
-            <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path
+                d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24">
+              </path>
               <line x1="1" y1="1" x2="23" y2="23"></line>
             </svg>
           </button>
         </div>
-        
+
         <!-- Reglas de contraseña con nuevo estilo -->
         <div v-if="form.password" class="password-rules">
           <span :class="hasMinLength ? 'password-rules__rule--valid' : 'password-rules__rule--invalid'">
@@ -153,11 +139,7 @@ function clearError() {
       </div>
 
       <!-- Botón Submit -->
-      <button
-        type="submit"
-        class="create-admin-form__submit"
-        :disabled="!isFormValid || adminStore.isCreatingAdmin"
-      >
+      <button type="submit" class="create-admin-form__submit" :disabled="!isFormValid || adminStore.isCreatingAdmin">
         <span v-if="adminStore.isCreatingAdmin">Creando...</span>
         <span v-else>Crear Administrador</span>
       </button>
@@ -340,7 +322,7 @@ function clearError() {
     display: flex;
     align-items: center;
     gap: 8px;
-    
+
     &::before {
       content: '';
       width: 16px;
@@ -362,7 +344,7 @@ function clearError() {
     display: flex;
     align-items: center;
     gap: 8px;
-    
+
     &::before {
       content: '';
       width: 16px;

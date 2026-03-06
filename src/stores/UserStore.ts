@@ -98,6 +98,8 @@ export const useUserStore = defineStore('user', () => {
     }
   };
 
+
+
   // ==================== ACTIONS ====================
 
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -275,5 +277,6 @@ export const useUserStore = defineStore('user', () => {
     initialize,
     fetchUser,
     fetchUserAccounts,
+  
   };
 });

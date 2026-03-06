@@ -165,6 +165,15 @@ export const useAdminStore = defineStore('admin', () => {
     }
   };
 
+  const deleteUser = async (userId: number): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/User/${userId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    })
+    if (response.status === 401) { handleUnauthorized(); return }
+    if (!response.ok) throw new Error(`Error ${response.status}`)
+  }
+
   const clearStats = () => {
     systemStats.value = null;
     statsError.value = null;
@@ -186,6 +195,7 @@ export const useAdminStore = defineStore('admin', () => {
     fetchSystemStats,
     clearStats,
     createAdmin,
-    fetchAllUsers
+    fetchAllUsers,
+    deleteUser
   };
 });
